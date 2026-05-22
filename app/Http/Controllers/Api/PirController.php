@@ -91,6 +91,9 @@ class PirController extends Controller
                 'recorded_at' => $recordedAt
             ]);
 
+            // Tandai device sebagai online
+            Device::markOnline($data['device_id']);
+
             // Jika gerakan mencurigakan, buat alert dan kirim notifikasi
             $alertSent = false;
             if ($isSuspicious || $motionType === 'unauthorized') {

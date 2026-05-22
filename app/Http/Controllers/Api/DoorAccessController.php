@@ -102,6 +102,9 @@ class DoorAccessController extends Controller
                 'recorded_at' => $recordedAt
             ]);
 
+            // Tandai device sebagai online
+            Device::markOnline($data['device_id']);
+
             // Jika akses mencurigakan atau tidak sah, buat alert dan kirim notifikasi
             $alertSent = false;
             if ($isSuspicious || !$isAuthorizedAccess || $accessType === 'forced_entry') {

@@ -68,6 +68,9 @@ class VibrationController extends Controller
                 'recorded_at' => now()
             ]);
 
+            // Tandai device sebagai online
+            Device::markOnline($data['device_id']);
+
             // Jika getaran abnormal, buat alert dan kirim notifikasi
             if ($isAbnormal) {
                 $this->handleAbnormalVibration($vibrationReading);

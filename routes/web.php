@@ -78,6 +78,41 @@ Route::get('/logout', function () {
 
 // Group routes yang memerlukan login
 Route::middleware(['auth'])->group(function () {
+
+    // Upload foto profil
+    Route::post('/profile/photo', function (\Illuminate\Http\Request $request) {
+        $request->validate([
+            'photo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ], [
+            'photo.required' => 'Pilih foto terlebih dahulu.',
+            'photo.image'    => 'File harus berupa gambar.',
+            'photo.mimes'    => 'Format gambar harus jpeg, png, jpg, atau gif.',
+            'photo.max'      => 'Ukuran foto maksimal 2MB.',
+        ]);
+
+        $user = \Illuminate\Support\Facades\Auth::user();
+
+        // Hapus foto lama jika ada
+        if ($user->profile_photo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo);
+        }
+
+        $path = $request->file('photo')->store('profile-photos', 'public');
+        $user->update(['profile_photo' => $path]);
+
+        return back()->with('success', 'Foto profil berhasil diperbarui.');
+    })->name('profile.photo.upload');
+
+    // Hapus foto profil
+    Route::delete('/profile/photo', function () {
+        $user = \Illuminate\Support\Facades\Auth::user();
+        if ($user->profile_photo) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($user->profile_photo);
+            $user->update(['profile_photo' => null]);
+        }
+        return back()->with('success', 'Foto profil berhasil dihapus.');
+    })->name('profile.photo.delete');
+
     Route::get('/dashboard', function () {
         $totalSensor       = \App\Models\Sensor::where('is_active', true)->count();
         $sensorAktif       = \App\Models\Sensor::where('status', 'active')->count();
@@ -100,9 +135,14 @@ Route::middleware(['auth'])->group(function () {
         $reedAktif = \App\Models\ReedSwitchReading::where('recorded_at', '>=', now()->subSeconds(30))
                         ->where('door_open', true)->exists();
 
+        // Status device online — berdasarkan last_seen dalam 2 menit terakhir
+        $device        = \App\Models\Device::orderBy('last_seen', 'desc')->first();
+        $sistemOnline  = $device && $device->last_seen && $device->last_seen->diffInMinutes(now()) <= 2;
+
         return view('dashboard', compact(
             'totalSensor', 'sensorAktif', 'peringatanHariIni', 'alertAktif',
-            'lastUpdate', 'alertTerbaru', 'pirAktif', 'vibAktif', 'reedAktif'
+            'lastUpdate', 'alertTerbaru', 'pirAktif', 'vibAktif', 'reedAktif',
+            'device', 'sistemOnline'
         ));
     })->name('dashboard');
 

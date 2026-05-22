@@ -118,13 +118,19 @@
 
 <!-- USER -->
 <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-800/50 to-slate-700/50 rounded-2xl border border-gray-700/30">
-<div class="relative">
-<img src="https://i.pravatar.cc/48" class="w-12 h-12 rounded-xl shadow-lg">
+<div class="relative cursor-pointer" onclick="openProfileModal()" title="Ubah foto profil">
+@if(auth()->user()->profile_photo)
+<img src="{{ auth()->user()->profile_photo_url }}" class="w-12 h-12 rounded-xl shadow-lg object-cover hover:opacity-80 transition-opacity">
+@else
+<div class="w-12 h-12 rounded-xl shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center hover:opacity-80 transition-opacity">
+<span class="text-white font-bold text-sm">{{ auth()->user()->initials }}</span>
+</div>
+@endif
 <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-800"></div>
 </div>
 
 <div class="flex-1">
-<p class="font-semibold text-white">Admin</p>
+<p class="font-semibold text-white">{{ auth()->user()->name }}</p>
 <p class="text-sm text-gray-400">System Operator</p>
 </div>
 
@@ -152,18 +158,26 @@
 </div>
 
 <div class="flex items-center gap-2 md:gap-6">
-<div class="flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 px-3 py-2 rounded-xl border border-green-200">
-<div class="w-2 h-2 md:w-3 md:h-3 bg-green-500 rounded-full animate-pulse-slow"></div>
-<span class="text-green-700 font-semibold text-xs md:text-sm hidden sm:inline">Sistem Online</span>
+<div id="system-status-badge" class="flex items-center gap-2 {{ $sistemOnline ? 'bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-200' : 'bg-gradient-to-r from-red-500/10 to-orange-500/10 border-red-200' }} px-3 py-2 rounded-xl border transition-all duration-500 cursor-default" title="Status koneksi ESP32">
+<div id="system-status-dot" class="w-2 h-2 md:w-3 md:h-3 {{ $sistemOnline ? 'bg-green-500 animate-pulse-slow' : 'bg-red-500' }} rounded-full transition-all duration-500"></div>
+<span id="system-status-text" class="{{ $sistemOnline ? 'text-green-700' : 'text-red-700' }} font-semibold text-xs md:text-sm hidden sm:inline transition-all duration-500">
+{{ $sistemOnline ? 'Sistem Online' : 'Sistem Offline' }}
+</span>
 </div>
 
 <div class="flex items-center gap-2">
-<div class="relative">
-<img src="https://i.pravatar.cc/44" class="w-9 h-9 md:w-11 md:h-11 rounded-xl shadow-lg">
+<div class="relative cursor-pointer" onclick="openProfileModal()" title="Klik untuk ubah foto profil">
+@if(auth()->user()->profile_photo)
+<img src="{{ auth()->user()->profile_photo_url }}" class="w-9 h-9 md:w-11 md:h-11 rounded-xl shadow-lg object-cover hover:opacity-80 transition-opacity">
+@else
+<div class="w-9 h-9 md:w-11 md:h-11 rounded-xl shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center hover:opacity-80 transition-opacity">
+<span class="text-white font-bold text-xs md:text-sm">{{ auth()->user()->initials }}</span>
+</div>
+@endif
 <div class="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
 </div>
 <div class="hidden sm:block">
-<span class="text-gray-800 font-semibold text-sm">Admin</span>
+<span class="text-gray-800 font-semibold text-sm">{{ auth()->user()->name }}</span>
 <p class="text-gray-500 text-xs">Online</p>
 </div>
 </div>
@@ -565,6 +579,98 @@
 feather.replace()
 </script>
 
+<!-- MODAL FOTO PROFIL -->
+<div id="profile-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeProfileModal()"></div>
+
+  <!-- Modal Card -->
+  <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 z-10">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h3 class="text-xl font-display font-bold text-gray-800">Foto Profil</h3>
+        <p class="text-gray-500 text-sm mt-0.5">Upload atau hapus foto profil Anda</p>
+      </div>
+      <button onclick="closeProfileModal()" class="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-xl flex items-center justify-center text-gray-500 transition-all">
+        <i data-feather="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Preview Foto -->
+    <div class="flex flex-col items-center mb-6">
+      <div class="relative group">
+        @if(auth()->user()->profile_photo)
+        <img id="photo-preview" src="{{ auth()->user()->profile_photo_url }}" class="w-28 h-28 rounded-2xl object-cover shadow-lg border-4 border-indigo-100">
+        @else
+        <div id="photo-preview-placeholder" class="w-28 h-28 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg border-4 border-indigo-100">
+          <span class="text-white font-bold text-3xl">{{ auth()->user()->initials }}</span>
+        </div>
+        <img id="photo-preview" src="" class="w-28 h-28 rounded-2xl object-cover shadow-lg border-4 border-indigo-100 hidden">
+        @endif
+        <label for="photo-input" class="absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+          <i data-feather="camera" class="w-7 h-7 text-white"></i>
+        </label>
+      </div>
+      <p class="text-gray-400 text-xs mt-3">Klik foto untuk memilih gambar baru</p>
+    </div>
+
+    <!-- Flash messages -->
+    @if(session('success'))
+    <div class="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm flex items-center gap-2">
+      <i data-feather="check-circle" class="w-4 h-4 flex-shrink-0"></i>
+      {{ session('success') }}
+    </div>
+    @endif
+
+    <!-- Form Upload -->
+    <form action="{{ route('profile.photo.upload') }}" method="POST" enctype="multipart/form-data" id="upload-form">
+      @csrf
+      <input type="file" id="photo-input" name="photo" accept="image/jpeg,image/png,image/jpg,image/gif" class="hidden" onchange="previewPhoto(this)">
+
+      <div id="upload-area" class="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center mb-4 hover:border-indigo-300 transition-colors cursor-pointer" onclick="document.getElementById('photo-input').click()">
+        <i data-feather="upload-cloud" class="w-8 h-8 text-gray-400 mx-auto mb-2"></i>
+        <p class="text-gray-500 text-sm font-medium">Klik atau drag foto ke sini</p>
+        <p class="text-gray-400 text-xs mt-1">JPEG, PNG, JPG, GIF — Maks. 2MB</p>
+      </div>
+
+      <div id="selected-file-info" class="hidden mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl flex items-center gap-3">
+        <i data-feather="image" class="w-5 h-5 text-indigo-500 flex-shrink-0"></i>
+        <div class="flex-1 min-w-0">
+          <p id="selected-file-name" class="text-indigo-700 text-sm font-medium truncate"></p>
+          <p id="selected-file-size" class="text-indigo-400 text-xs"></p>
+        </div>
+        <button type="button" onclick="clearPhotoSelection()" class="text-indigo-400 hover:text-indigo-600">
+          <i data-feather="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      @error('photo')
+      <p class="text-red-500 text-sm mb-3 flex items-center gap-1">
+        <i data-feather="alert-circle" class="w-4 h-4"></i> {{ $message }}
+      </p>
+      @enderror
+
+      <button type="submit" id="upload-btn" class="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100" disabled>
+        <i data-feather="upload" class="w-5 h-5"></i>
+        Simpan Foto Profil
+      </button>
+    </form>
+
+    <!-- Hapus Foto (hanya tampil jika ada foto) -->
+    @if(auth()->user()->profile_photo)
+    <form action="{{ route('profile.photo.delete') }}" method="POST" class="mt-3" onsubmit="return confirm('Hapus foto profil?')">
+      @csrf
+      @method('DELETE')
+      <button type="submit" class="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 border border-red-200">
+        <i data-feather="trash-2" class="w-5 h-5"></i>
+        Hapus Foto Profil
+      </button>
+    </form>
+    @endif
+  </div>
+</div>
+
 <script>
 // Toggle sidebar mobile
 function toggleSidebar() {
@@ -775,6 +881,128 @@ function dismissAlert() {
 document.addEventListener('DOMContentLoaded', function () {
   fetchSensorStatus();
   pollingInterval = setInterval(fetchSensorStatus, 5000);
+});
+</script>
+
+<script>
+// =============================================
+// POLLING STATUS SISTEM (ESP32 ONLINE/OFFLINE)
+// =============================================
+async function pollSystemStatus() {
+  try {
+    const res = await fetch('/api/device/status').then(r => r.json()).catch(() => null);
+    if (!res) return;
+
+    const badge   = document.getElementById('system-status-badge');
+    const dot     = document.getElementById('system-status-dot');
+    const text    = document.getElementById('system-status-text');
+
+    if (res.online) {
+      badge.className = badge.className
+        .replace(/from-red-500\/10 to-orange-500\/10 border-red-200/g, '')
+        .replace(/from-green-500\/10 to-emerald-500\/10 border-green-200/g, '');
+      badge.className = 'flex items-center gap-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-200 px-3 py-2 rounded-xl border transition-all duration-500 cursor-default';
+
+      dot.className = 'w-2 h-2 md:w-3 md:h-3 bg-green-500 animate-pulse-slow rounded-full transition-all duration-500';
+      text.className = 'text-green-700 font-semibold text-xs md:text-sm hidden sm:inline transition-all duration-500';
+      text.textContent = 'Sistem Online';
+    } else {
+      badge.className = 'flex items-center gap-2 bg-gradient-to-r from-red-500/10 to-orange-500/10 border-red-200 px-3 py-2 rounded-xl border transition-all duration-500 cursor-default';
+      dot.className = 'w-2 h-2 md:w-3 md:h-3 bg-red-500 rounded-full transition-all duration-500';
+      text.className = 'text-red-700 font-semibold text-xs md:text-sm hidden sm:inline transition-all duration-500';
+      text.textContent = 'Sistem Offline';
+    }
+
+    // Update tooltip dengan info last seen
+    badge.title = res.online
+      ? 'ESP32 aktif — terakhir kirim data: ' + (res.last_seen_human ?? '-')
+      : 'ESP32 tidak merespons — terakhir online: ' + (res.last_seen_human ?? 'Belum pernah');
+
+  } catch (e) {
+    // Diam saja jika gagal
+  }
+}
+
+// Jalankan polling status sistem setiap 10 detik
+document.addEventListener('DOMContentLoaded', function () {
+  pollSystemStatus();
+  setInterval(pollSystemStatus, 10000);
+});
+</script>
+
+<script>
+// =============================================
+// MODAL FOTO PROFIL
+// =============================================
+function openProfileModal() {
+  const modal = document.getElementById('profile-modal');
+  modal.classList.remove('hidden');
+  modal.classList.add('flex');
+  feather.replace();
+}
+
+function closeProfileModal() {
+  const modal = document.getElementById('profile-modal');
+  modal.classList.add('hidden');
+  modal.classList.remove('flex');
+}
+
+function previewPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+
+  const file = input.files[0];
+  const reader = new FileReader();
+
+  reader.onload = function (e) {
+    const preview = document.getElementById('photo-preview');
+    const placeholder = document.getElementById('photo-preview-placeholder');
+
+    preview.src = e.target.result;
+    preview.classList.remove('hidden');
+    if (placeholder) placeholder.classList.add('hidden');
+
+    // Info file
+    const info = document.getElementById('selected-file-info');
+    document.getElementById('selected-file-name').textContent = file.name;
+    document.getElementById('selected-file-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    info.classList.remove('hidden');
+
+    // Enable tombol upload
+    document.getElementById('upload-btn').disabled = false;
+
+    feather.replace();
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function clearPhotoSelection() {
+  document.getElementById('photo-input').value = '';
+  document.getElementById('selected-file-info').classList.add('hidden');
+  document.getElementById('upload-btn').disabled = true;
+
+  // Kembalikan preview ke kondisi awal
+  @if(auth()->user()->profile_photo)
+  document.getElementById('photo-preview').src = '{{ auth()->user()->profile_photo_url }}';
+  @else
+  const preview = document.getElementById('photo-preview');
+  preview.src = '';
+  preview.classList.add('hidden');
+  const placeholder = document.getElementById('photo-preview-placeholder');
+  if (placeholder) placeholder.classList.remove('hidden');
+  @endif
+}
+
+// Buka modal otomatis jika ada flash message dari upload/hapus foto
+@if(session('success') && (str_contains(session('success'), 'foto') || str_contains(session('success'), 'Foto')))
+document.addEventListener('DOMContentLoaded', function () {
+  openProfileModal();
+});
+@endif
+
+// Tutup modal dengan Escape
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeProfileModal();
 });
 </script>
 

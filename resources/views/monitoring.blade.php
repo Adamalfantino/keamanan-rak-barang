@@ -80,11 +80,17 @@
 <!-- USER -->
 <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-800/50 to-slate-700/50 rounded-2xl border border-gray-700/30">
 <div class="relative">
-<img src="https://i.pravatar.cc/48" class="w-12 h-12 rounded-xl shadow-lg">
+@if(auth()->user()->profile_photo)
+<img src="{{ auth()->user()->profile_photo_url }}" class="w-12 h-12 rounded-xl shadow-lg object-cover">
+@else
+<div class="w-12 h-12 rounded-xl shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+<span class="text-white font-bold text-sm">{{ auth()->user()->initials }}</span>
+</div>
+@endif
 <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-slate-800"></div>
 </div>
 <div class="flex-1">
-<p class="font-semibold text-white">Admin</p>
+<p class="font-semibold text-white">{{ auth()->user()->name }}</p>
 <p class="text-sm text-gray-400">System Operator</p>
 </div>
 <a href="{{ route('logout') }}" class="w-10 h-10 bg-red-500/20 hover:bg-red-500/30 rounded-lg flex items-center justify-center text-red-400 hover:text-red-300 transition-all duration-300" title="Logout">
@@ -115,11 +121,17 @@
 </div>
 <div class="flex items-center gap-2">
 <div class="relative">
-<img src="https://i.pravatar.cc/44" class="w-9 h-9 md:w-11 md:h-11 rounded-xl shadow-lg">
+@if(auth()->user()->profile_photo)
+<img src="{{ auth()->user()->profile_photo_url }}" class="w-9 h-9 md:w-11 md:h-11 rounded-xl shadow-lg object-cover">
+@else
+<div class="w-9 h-9 md:w-11 md:h-11 rounded-xl shadow-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+<span class="text-white font-bold text-xs md:text-sm">{{ auth()->user()->initials }}</span>
+</div>
+@endif
 <div class="absolute -bottom-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-green-500 rounded-full border-2 border-white"></div>
 </div>
 <div class="hidden sm:block">
-<span class="text-gray-800 font-semibold text-sm">Admin</span>
+<span class="text-gray-800 font-semibold text-sm">{{ auth()->user()->name }}</span>
 <p class="text-gray-500 text-xs">Online</p>
 </div>
 </div>

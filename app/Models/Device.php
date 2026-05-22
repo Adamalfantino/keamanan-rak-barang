@@ -65,6 +65,28 @@ class Device extends Model
         return $query->where('is_active', true);
     }
 
+    /**
+     * Cek apakah device benar-benar online berdasarkan last_seen (dalam 2 menit terakhir)
+     */
+    public function getIsOnlineAttribute(): bool
+    {
+        if (!$this->last_seen) {
+            return false;
+        }
+        return $this->last_seen->diffInMinutes(now()) <= 2;
+    }
+
+    /**
+     * Update status device ke online dan catat last_seen
+     */
+    public static function markOnline(int $deviceId): void
+    {
+        static::where('id', $deviceId)->update([
+            'status'      => 'online',
+            'last_seen'   => now(),
+        ]);
+    }
+
     // Accessor untuk status badge color
     public function getStatusColorAttribute()
     {

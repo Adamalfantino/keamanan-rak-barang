@@ -79,6 +79,20 @@ Route::prefix('lora')->group(function () {
     Route::post('/process-messages', [LoRaController::class, 'processUnprocessedMessages']);
 });
 
+// Device Status API — untuk polling online/offline dari frontend
+Route::get('/device/status', function () {
+    $device = \App\Models\Device::orderBy('last_seen', 'desc')->first();
+    $online = $device && $device->last_seen && $device->last_seen->diffInMinutes(now()) <= 2;
+
+    return response()->json([
+        'success'    => true,
+        'online'     => $online,
+        'last_seen'  => $device?->last_seen?->toISOString(),
+        'last_seen_human' => $device?->last_seen?->diffForHumans() ?? 'Belum pernah online',
+        'device_name' => $device?->name ?? 'ESP32',
+    ]);
+});
+
 // Test notification endpoints
 Route::post('/test-notification', function () {
     $notificationService = new \App\Services\NotificationService();

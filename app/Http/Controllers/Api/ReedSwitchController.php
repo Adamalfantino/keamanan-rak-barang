@@ -112,6 +112,9 @@ class ReedSwitchController extends Controller
                 'recorded_at' => $recordedAt
             ]);
 
+            // Tandai device sebagai online
+            Device::markOnline($data['device_id']);
+
             // Jika akses tidak sah atau pembukaan paksa, buat alert dan kirim notifikasi
             $alertSent = false;
             if ($isUnauthorized || $isForcedEntry || $accessLevel !== 'normal') {
