@@ -22,25 +22,44 @@
 <!-- NAVBAR -->
 <nav class="glass fixed top-0 w-full z-50 border-b border-white/10">
 <div class="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
-<div class="flex items-center gap-3">
-<div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-<i data-feather="shield" class="w-5 h-5 text-white"></i>
-</div>
-<h1 class="text-xl font-display font-bold text-gray-800">Smart Rack Security</h1>
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+      <i data-feather="shield" class="w-5 h-5 text-white"></i>
+    </div>
+    <h1 class="text-xl font-display font-bold text-gray-800">Smart Rack Security</h1>
+  </div>
+
+  <div class="hidden md:flex items-center gap-8">
+    <a href="/home" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Home</a>
+    <a href="#fitur" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Sensor</a>
+    <a href="#tentang" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Tentang</a>
+    <a href="/login" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
+      Login
+    </a>
+  </div>
+
+  <!-- Hamburger button -->
+  <button id="hamburger-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none" aria-label="Toggle menu">
+    <i id="hamburger-icon" data-feather="menu" class="w-6 h-6 text-gray-800"></i>
+  </button>
 </div>
 
-<div class="hidden md:flex items-center gap-8">
-<a href="/home" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Home</a>
-<a href="#fitur" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Sensor</a>
-<a href="#tentang" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Tentang</a>
-<a href="/login" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
-Login
-</a>
-</div>
-
-<button class="md:hidden p-2 rounded-lg hover:bg-white/20 transition-colors">
-<i data-feather="menu" class="w-6 h-6 text-gray-800"></i>
-</button>
+<!-- Mobile Menu -->
+<div id="mobile-menu" class="hidden md:hidden border-t border-white/20 bg-white/95 backdrop-blur-md">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-1">
+    <a href="/home" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium">
+      <i data-feather="home" class="w-5 h-5"></i> Home
+    </a>
+    <a href="#fitur" onclick="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium">
+      <i data-feather="layers" class="w-5 h-5"></i> Sensor
+    </a>
+    <a href="#tentang" onclick="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium">
+      <i data-feather="info" class="w-5 h-5"></i> Tentang
+    </a>
+    <a href="/login" class="flex items-center justify-center gap-3 mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all">
+      <i data-feather="log-in" class="w-5 h-5"></i> Login
+    </a>
+  </div>
 </div>
 </nav>
 
@@ -329,6 +348,37 @@ Sistem monitoring keamanan rak berbasis IoT dengan teknologi sensor terdepan unt
 
 <script>
 feather.replace()
+</script>
+
+<script>
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobile-menu');
+  const icon = document.getElementById('hamburger-icon');
+  const isOpen = !menu.classList.contains('hidden');
+
+  if (isOpen) {
+    menu.classList.add('hidden');
+    icon.setAttribute('data-feather', 'menu');
+  } else {
+    menu.classList.remove('hidden');
+    icon.setAttribute('data-feather', 'x');
+  }
+  feather.replace();
+}
+
+function closeMobileMenu() {
+  document.getElementById('mobile-menu').classList.add('hidden');
+  document.getElementById('hamburger-icon').setAttribute('data-feather', 'menu');
+  feather.replace();
+}
+
+// Tutup menu saat klik di luar navbar
+document.addEventListener('click', function (e) {
+  const nav = document.querySelector('nav');
+  if (!nav.contains(e.target)) {
+    closeMobileMenu();
+  }
+});
 </script>
 
 </body>
