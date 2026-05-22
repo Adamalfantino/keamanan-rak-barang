@@ -39,7 +39,7 @@
   </div>
 
   <!-- Hamburger button -->
-  <button id="hamburger-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none" aria-label="Toggle menu">
+  <button id="hamburger-btn" onclick="toggleMobileMenu(event)" class="md:hidden p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none" aria-label="Toggle menu">
     <i id="hamburger-icon" data-feather="menu" class="w-6 h-6 text-gray-800"></i>
   </button>
 </div>
@@ -351,7 +351,8 @@ feather.replace()
 </script>
 
 <script>
-function toggleMobileMenu() {
+function toggleMobileMenu(e) {
+  e.stopPropagation(); // cegah event naik ke document listener
   const menu = document.getElementById('mobile-menu');
   const icon = document.getElementById('hamburger-icon');
   const isOpen = !menu.classList.contains('hidden');
@@ -367,17 +368,19 @@ function toggleMobileMenu() {
 }
 
 function closeMobileMenu() {
-  document.getElementById('mobile-menu').classList.add('hidden');
-  document.getElementById('hamburger-icon').setAttribute('data-feather', 'menu');
-  feather.replace();
+  const menu = document.getElementById('mobile-menu');
+  const icon = document.getElementById('hamburger-icon');
+  if (!menu.classList.contains('hidden')) {
+    menu.classList.add('hidden');
+    icon.setAttribute('data-feather', 'menu');
+    feather.replace();
+  }
 }
 
-// Tutup menu saat klik di luar navbar
+// Tutup menu saat klik/tap di luar navbar
 document.addEventListener('click', function (e) {
   const nav = document.querySelector('nav');
-  if (!nav.contains(e.target)) {
-    closeMobileMenu();
-  }
+  if (!nav.contains(e.target)) closeMobileMenu();
 });
 </script>
 
