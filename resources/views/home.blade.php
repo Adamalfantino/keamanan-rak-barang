@@ -29,22 +29,35 @@
     <h1 class="text-xl font-display font-bold text-gray-800">Smart Rack Security</h1>
   </div>
 
+  {{-- Desktop menu --}}
   <div class="hidden md:flex items-center gap-8">
     <a href="/home" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Home</a>
     <a href="#fitur" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Sensor</a>
     <a href="#tentang" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium">Tentang</a>
-    <a href="/login" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
-      Login
-    </a>
+
+    @auth
+      {{-- Sudah login: tampilkan Dashboard & Logout --}}
+      <a href="{{ route('dashboard') }}" class="text-gray-700 hover:text-indigo-600 transition-colors font-medium flex items-center gap-1">
+        <i data-feather="home" class="w-4 h-4"></i> Dashboard
+      </a>
+      <a href="{{ route('logout') }}" class="bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium flex items-center gap-2">
+        <i data-feather="log-out" class="w-4 h-4"></i> Logout
+      </a>
+    @else
+      {{-- Belum login: tampilkan Login --}}
+      <a href="/login" class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300 font-medium">
+        Login
+      </a>
+    @endauth
   </div>
 
-  <!-- Hamburger button -->
+  {{-- Hamburger button --}}
   <button id="hamburger-btn" onclick="toggleMobileMenu(event)" class="md:hidden p-2 rounded-lg hover:bg-white/20 transition-colors focus:outline-none" aria-label="Toggle menu">
     <i id="hamburger-icon" data-feather="menu" class="w-6 h-6 text-gray-800"></i>
   </button>
 </div>
 
-<!-- Mobile Menu -->
+{{-- Mobile Menu --}}
 <div id="mobile-menu" class="hidden md:hidden border-t border-white/20 bg-white/95 backdrop-blur-md">
   <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col gap-1">
     <a href="/home" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium">
@@ -56,9 +69,19 @@
     <a href="#tentang" onclick="closeMobileMenu()" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium">
       <i data-feather="info" class="w-5 h-5"></i> Tentang
     </a>
-    <a href="/login" class="flex items-center justify-center gap-3 mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all">
-      <i data-feather="log-in" class="w-5 h-5"></i> Login
-    </a>
+
+    @auth
+      <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-all font-medium">
+        <i data-feather="layout" class="w-5 h-5"></i> Dashboard
+      </a>
+      <a href="{{ route('logout') }}" class="flex items-center justify-center gap-3 mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-red-500 to-rose-600 text-white font-semibold hover:shadow-lg transition-all">
+        <i data-feather="log-out" class="w-5 h-5"></i> Logout
+      </a>
+    @else
+      <a href="/login" class="flex items-center justify-center gap-3 mt-2 px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:shadow-lg transition-all">
+        <i data-feather="log-in" class="w-5 h-5"></i> Login
+      </a>
+    @endauth
   </div>
 </div>
 </nav>
@@ -87,14 +110,21 @@ Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, 
 </p>
 
 <div class="flex flex-col sm:flex-row justify-center gap-6 mb-16">
-<a href="/dashboard" class="group bg-white text-indigo-600 px-8 py-4 rounded-2xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
-<span>Masuk Dashboard</span>
-<i data-feather="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
-</a>
+@auth
+  <a href="{{ route('dashboard') }}" class="group bg-white text-indigo-600 px-8 py-4 rounded-2xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
+    <span>Buka Dashboard</span>
+    <i data-feather="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+  </a>
+@else
+  <a href="/login" class="group bg-white text-indigo-600 px-8 py-4 rounded-2xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
+    <span>Masuk Dashboard</span>
+    <i data-feather="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+  </a>
+@endauth
 
 <a href="#fitur" class="glass text-white px-8 py-4 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3">
-<span>Pelajari Sistem</span>
-<i data-feather="chevron-down" class="w-5 h-5"></i>
+  <span>Pelajari Sistem</span>
+  <i data-feather="chevron-down" class="w-5 h-5"></i>
 </a>
 </div>
 
@@ -115,39 +145,93 @@ Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, 
 <p class="text-xl text-gray-600">Teknologi monitoring keamanan yang dapat diandalkan</p>
 </div>
 
+@auth
+{{-- Sudah login: tampilkan statistik --}}
 <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-<div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-<div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-<i data-feather="layers" class="w-8 h-8 text-white"></i>
-</div>
-<h3 class="text-3xl font-display font-bold text-indigo-600 mb-2">4</h3>
-<p class="text-gray-600 font-medium">Sensor Sistem</p>
+  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+      <i data-feather="layers" class="w-8 h-8 text-white"></i>
+    </div>
+    <h3 class="text-3xl font-display font-bold text-indigo-600 mb-2">4</h3>
+    <p class="text-gray-600 font-medium">Sensor Sistem</p>
+  </div>
+
+  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+      <i data-feather="zap" class="w-8 h-8 text-white"></i>
+    </div>
+    <h3 class="text-3xl font-display font-bold text-green-600 mb-2">Realtime</h3>
+    <p class="text-gray-600 font-medium">Monitoring</p>
+  </div>
+
+  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+      <i data-feather="radio" class="w-8 h-8 text-white"></i>
+    </div>
+    <h3 class="text-3xl font-display font-bold text-blue-600 mb-2">LoRa</h3>
+    <p class="text-gray-600 font-medium">Komunikasi</p>
+  </div>
+
+  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+      <i data-feather="clock" class="w-8 h-8 text-white"></i>
+    </div>
+    <h3 class="text-3xl font-display font-bold text-purple-600 mb-2">6 Jam</h3>
+    <p class="text-gray-600 font-medium">Keamanan</p>
+  </div>
 </div>
 
-<div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-<div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-<i data-feather="zap" class="w-8 h-8 text-white"></i>
-</div>
-<h3 class="text-3xl font-display font-bold text-green-600 mb-2">Realtime</h3>
-<p class="text-gray-600 font-medium">Monitoring</p>
-</div>
+@else
+{{-- Belum login: tampilkan teaser dengan blur/lock --}}
+<div class="relative">
+  {{-- Card blur di belakang --}}
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8 select-none pointer-events-none" style="filter: blur(6px); opacity: 0.4;">
+    <div class="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+      <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-feather="layers" class="w-8 h-8 text-white"></i>
+      </div>
+      <h3 class="text-3xl font-display font-bold text-indigo-600 mb-2">—</h3>
+      <p class="text-gray-600 font-medium">Sensor Sistem</p>
+    </div>
+    <div class="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+      <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-feather="zap" class="w-8 h-8 text-white"></i>
+      </div>
+      <h3 class="text-3xl font-display font-bold text-green-600 mb-2">—</h3>
+      <p class="text-gray-600 font-medium">Monitoring</p>
+    </div>
+    <div class="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+      <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-feather="radio" class="w-8 h-8 text-white"></i>
+      </div>
+      <h3 class="text-3xl font-display font-bold text-blue-600 mb-2">—</h3>
+      <p class="text-gray-600 font-medium">Komunikasi</p>
+    </div>
+    <div class="text-center p-8 bg-white rounded-2xl shadow-lg border border-gray-100">
+      <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-feather="clock" class="w-8 h-8 text-white"></i>
+      </div>
+      <h3 class="text-3xl font-display font-bold text-purple-600 mb-2">—</h3>
+      <p class="text-gray-600 font-medium">Keamanan</p>
+    </div>
+  </div>
 
-<div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-<div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-<i data-feather="radio" class="w-8 h-8 text-white"></i>
+  {{-- Overlay lock --}}
+  <div class="absolute inset-0 flex items-center justify-center">
+    <div class="bg-white/90 backdrop-blur-sm rounded-2xl px-8 py-6 shadow-xl border border-indigo-100 text-center max-w-sm mx-4">
+      <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <i data-feather="lock" class="w-7 h-7 text-white"></i>
+      </div>
+      <h3 class="font-display font-bold text-gray-800 text-lg mb-2">Data Terkunci</h3>
+      <p class="text-gray-500 text-sm mb-4">Login untuk melihat statistik dan data monitoring sistem secara realtime.</p>
+      <a href="/login" class="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:shadow-lg hover:scale-105 transition-all duration-300 text-sm">
+        <i data-feather="log-in" class="w-4 h-4"></i> Login Sekarang
+      </a>
+    </div>
+  </div>
 </div>
-<h3 class="text-3xl font-display font-bold text-blue-600 mb-2">LoRa</h3>
-<p class="text-gray-600 font-medium">Komunikasi</p>
-</div>
+@endauth
 
-<div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-<div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-<i data-feather="clock" class="w-8 h-8 text-white"></i>
-</div>
-<h3 class="text-3xl font-display font-bold text-purple-600 mb-2">6 Jam</h3>
-<p class="text-gray-600 font-medium">Keamanan</p>
-</div>
-</div>
 </div>
 </section>
 
@@ -282,15 +366,25 @@ Akses dashboard monitoring untuk mengawasi keamanan rak Anda secara realtime den
 </div>
 
 <div class="flex flex-col sm:flex-row justify-center gap-6">
-<a href="/dashboard" class="group bg-white text-indigo-600 px-10 py-4 rounded-2xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
-<span>Buka Dashboard</span>
-<i data-feather="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
-</a>
-
-<a href="/login" class="glass text-white px-10 py-4 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3">
-<span>Login Admin</span>
-<i data-feather="user" class="w-5 h-5"></i>
-</a>
+@auth
+  <a href="{{ route('dashboard') }}" class="group bg-white text-indigo-600 px-10 py-4 rounded-2xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
+    <span>Buka Dashboard</span>
+    <i data-feather="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+  </a>
+  <a href="{{ route('logout') }}" class="glass text-white px-10 py-4 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3">
+    <span>Logout</span>
+    <i data-feather="log-out" class="w-5 h-5"></i>
+  </a>
+@else
+  <a href="/login" class="group bg-white text-indigo-600 px-10 py-4 rounded-2xl font-semibold hover:shadow-2xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
+    <span>Buka Dashboard</span>
+    <i data-feather="arrow-right" class="w-5 h-5 group-hover:translate-x-1 transition-transform"></i>
+  </a>
+  <a href="/login" class="glass text-white px-10 py-4 rounded-2xl font-semibold hover:bg-white/20 transition-all duration-300 flex items-center justify-center gap-3">
+    <span>Login Admin</span>
+    <i data-feather="user" class="w-5 h-5"></i>
+  </a>
+@endauth
 </div>
 </div>
 </section>
