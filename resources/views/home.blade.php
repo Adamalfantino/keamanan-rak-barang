@@ -147,38 +147,38 @@ Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, 
 
 @auth
 {{-- Sudah login: tampilkan statistik --}}
-<div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-    <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-      <i data-feather="layers" class="w-8 h-8 text-white"></i>
-    </div>
-    <h3 class="text-3xl font-display font-bold text-indigo-600 mb-2">4</h3>
-    <p class="text-gray-600 font-medium">Sensor Sistem</p>
-  </div>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 md:gap-8">
+<div class="group text-center p-4 sm:p-6 md:p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+<i data-feather="layers" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white"></i>
+</div>
+<h3 class="text-2xl sm:text-3xl font-display font-bold text-indigo-600 mb-1 md:mb-2">4</h3>
+<p class="text-gray-600 font-medium text-xs sm:text-sm md:text-base">Sensor Sistem</p>
+</div>
 
-  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-      <i data-feather="zap" class="w-8 h-8 text-white"></i>
-    </div>
-    <h3 class="text-3xl font-display font-bold text-green-600 mb-2">Realtime</h3>
-    <p class="text-gray-600 font-medium">Monitoring</p>
-  </div>
+<div class="group text-center p-4 sm:p-6 md:p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+<i data-feather="zap" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white"></i>
+</div>
+<h3 class="text-2xl sm:text-3xl font-display font-bold text-green-600 mb-1 md:mb-2">Realtime</h3>
+<p class="text-gray-600 font-medium text-xs sm:text-sm md:text-base">Monitoring</p>
+</div>
 
-  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-      <i data-feather="radio" class="w-8 h-8 text-white"></i>
-    </div>
-    <h3 class="text-3xl font-display font-bold text-blue-600 mb-2">LoRa</h3>
-    <p class="text-gray-600 font-medium">Komunikasi</p>
-  </div>
+<div class="group text-center p-4 sm:p-6 md:p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+<i data-feather="radio" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white"></i>
+</div>
+<h3 class="text-2xl sm:text-3xl font-display font-bold text-blue-600 mb-1 md:mb-2">LoRa</h3>
+<p class="text-gray-600 font-medium text-xs sm:text-sm md:text-base">Komunikasi</p>
+</div>
 
-  <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
-    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-      <i data-feather="clock" class="w-8 h-8 text-white"></i>
-    </div>
-    <h3 class="text-3xl font-display font-bold text-purple-600 mb-2">6 Jam</h3>
-    <p class="text-gray-600 font-medium">Keamanan</p>
-  </div>
+<div class="group text-center p-4 sm:p-6 md:p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
+<div class="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4 group-hover:scale-110 transition-transform">
+<i data-feather="clock" class="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 text-white"></i>
+</div>
+<h3 class="text-2xl sm:text-3xl font-display font-bold text-purple-600 mb-1 md:mb-2">6 Jam</h3>
+<p class="text-gray-600 font-medium text-xs sm:text-sm md:text-base">Keamanan</p>
+</div>
 </div>
 
 @else
@@ -245,60 +245,52 @@ Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, 
 <p class="text-xl text-gray-600 max-w-2xl mx-auto">Teknologi sensor terdepan untuk monitoring keamanan yang komprehensif</p>
 </div>
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 md:gap-8">
 <!-- PIR -->
-<div class="group bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
+<div class="group bg-white p-5 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-2 sm:hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
 <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 <div class="relative z-10">
-<div class="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-<i data-feather="activity" class="w-10 h-10 text-white"></i>
+<div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+<i data-feather="activity" class="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white"></i>
 </div>
-<h4 class="font-display font-bold text-xl mb-4 text-gray-800">Sensor PIR</h4>
-<p class="text-gray-600 leading-relaxed">
-Mendeteksi pergerakan manusia di sekitar rak untuk mengidentifikasi aktivitas mencurigakan dengan akurasi tinggi.
-</p>
+<h4 class="font-display font-bold text-lg sm:text-xl mb-2 sm:mb-3 md:mb-4 text-gray-800">Sensor PIR</h4>
+<p class="text-gray-600 leading-relaxed text-sm sm:text-base">Mendeteksi pergerakan manusia di sekitar rak untuk mengidentifikasi aktivitas mencurigakan dengan akurasi tinggi.</p>
 </div>
 </div>
 
 <!-- GETAR -->
-<div class="group bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
+<div class="group bg-white p-5 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-2 sm:hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
 <div class="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 <div class="relative z-10">
-<div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-<i data-feather="zap" class="w-10 h-10 text-white"></i>
+<div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+<i data-feather="zap" class="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white"></i>
 </div>
-<h4 class="font-display font-bold text-xl mb-4 text-gray-800">Sensor Getar</h4>
-<p class="text-gray-600 leading-relaxed">
-Sensor SW-420 mendeteksi getaran ketika rak digeser, didorong, atau disentuh dengan sensitivitas optimal.
-</p>
+<h4 class="font-display font-bold text-lg sm:text-xl mb-2 sm:mb-3 md:mb-4 text-gray-800">Sensor Getar</h4>
+<p class="text-gray-600 leading-relaxed text-sm sm:text-base">Sensor SW-420 mendeteksi getaran ketika rak digeser, didorong, atau disentuh dengan sensitivitas optimal.</p>
 </div>
 </div>
 
 <!-- REED -->
-<div class="group bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
+<div class="group bg-white p-5 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-2 sm:hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
 <div class="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 <div class="relative z-10">
-<div class="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-<i data-feather="unlock" class="w-10 h-10 text-white"></i>
+<div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+<i data-feather="unlock" class="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white"></i>
 </div>
-<h4 class="font-display font-bold text-xl mb-4 text-gray-800">Reed Switch</h4>
-<p class="text-gray-600 leading-relaxed">
-Mengetahui kondisi rak terbuka atau tertutup secara otomatis dengan respons yang cepat dan akurat.
-</p>
+<h4 class="font-display font-bold text-lg sm:text-xl mb-2 sm:mb-3 md:mb-4 text-gray-800">Reed Switch</h4>
+<p class="text-gray-600 leading-relaxed text-sm sm:text-base">Mengetahui kondisi rak terbuka atau tertutup secara otomatis dengan respons yang cepat dan akurat.</p>
 </div>
 </div>
 
 <!-- LORA -->
-<div class="group bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
+<div class="group bg-white p-5 sm:p-6 md:p-8 rounded-2xl md:rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-2 sm:hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
 <div class="absolute inset-0 bg-gradient-to-br from-purple-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 <div class="relative z-10">
-<div class="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
-<i data-feather="radio" class="w-10 h-10 text-white"></i>
+<div class="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl md:rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-5 md:mb-6 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-lg">
+<i data-feather="radio" class="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white"></i>
 </div>
-<h4 class="font-display font-bold text-xl mb-4 text-gray-800">Komunikasi LoRa</h4>
-<p class="text-gray-600 leading-relaxed">
-Mengirim data sensor ke server monitoring dengan jangkauan komunikasi jarak jauh dan konsumsi daya rendah.
-</p>
+<h4 class="font-display font-bold text-lg sm:text-xl mb-2 sm:mb-3 md:mb-4 text-gray-800">Komunikasi LoRa</h4>
+<p class="text-gray-600 leading-relaxed text-sm sm:text-base">Mengirim data sensor ke server monitoring dengan jangkauan komunikasi jarak jauh dan konsumsi daya rendah.</p>
 </div>
 </div>
 </div>

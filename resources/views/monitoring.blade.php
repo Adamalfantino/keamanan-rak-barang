@@ -301,15 +301,15 @@ Level: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_
 </div>
 
 <!-- RIWAYAT DATA TERBARU -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
 
 <!-- Riwayat PIR -->
-<div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-6 border border-gray-100">
-<div class="flex items-center gap-3 mb-5">
-<div class="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-<i data-feather="eye" class="w-5 h-5 text-indigo-600"></i>
+<div class="bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg p-4 sm:p-5 md:p-6 border border-gray-100">
+<div class="flex items-center gap-3 mb-4 sm:mb-5">
+<div class="w-9 h-9 sm:w-10 sm:h-10 bg-indigo-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="eye" class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"></i>
 </div>
-<h4 class="font-display font-bold text-gray-800">Riwayat PIR</h4>
+<h4 class="font-display font-bold text-gray-800 text-sm sm:text-base">Riwayat PIR</h4>
 </div>
 <div class="space-y-3">
 @forelse($pirHistory as $pir)
@@ -330,12 +330,12 @@ Level: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_
 </div>
 
 <!-- Riwayat Vibration -->
-<div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-6 border border-gray-100">
-<div class="flex items-center gap-3 mb-5">
-<div class="w-10 h-10 bg-yellow-100 rounded-xl flex items-center justify-center">
-<i data-feather="zap" class="w-5 h-5 text-yellow-600"></i>
+<div class="bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg p-4 sm:p-5 md:p-6 border border-gray-100">
+<div class="flex items-center gap-3 mb-4 sm:mb-5">
+<div class="w-9 h-9 sm:w-10 sm:h-10 bg-yellow-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="zap" class="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600"></i>
 </div>
-<h4 class="font-display font-bold text-gray-800">Riwayat Getaran</h4>
+<h4 class="font-display font-bold text-gray-800 text-sm sm:text-base">Riwayat Getaran</h4>
 </div>
 <div class="space-y-3">
 @forelse($vibrationHistory as $vib)
@@ -355,12 +355,12 @@ Level: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_
 </div>
 
 <!-- Riwayat Reed Switch -->
-<div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-6 border border-gray-100">
-<div class="flex items-center gap-3 mb-5">
-<div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-<i data-feather="unlock" class="w-5 h-5 text-purple-600"></i>
+<div class="bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg p-4 sm:p-5 md:p-6 border border-gray-100">
+<div class="flex items-center gap-3 mb-4 sm:mb-5">
+<div class="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="unlock" class="w-4 h-4 sm:w-5 sm:h-5 text-purple-600"></i>
 </div>
-<h4 class="font-display font-bold text-gray-800">Riwayat Reed Switch</h4>
+<h4 class="font-display font-bold text-gray-800 text-sm sm:text-base">Riwayat Reed Switch</h4>
 </div>
 <div class="space-y-3">
 @forelse($reedHistory as $reed)
@@ -382,50 +382,50 @@ Level: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_
 </div>
 
 <!-- STATUS BAR -->
-<div class="bg-white/80 backdrop-blur-sm rounded-3xl shadow-lg p-8 border border-gray-100">
-<div class="flex items-center gap-3 mb-6">
-<div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-<i data-feather="monitor" class="w-6 h-6 text-white"></i>
+<div class="bg-white/80 backdrop-blur-sm rounded-2xl md:rounded-3xl shadow-lg p-4 sm:p-6 md:p-8 border border-gray-100">
+<div class="flex items-center gap-3 mb-4 sm:mb-6">
+<div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="monitor" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
 </div>
 <div>
-<h3 class="text-xl font-display font-bold text-gray-800">Status Sistem</h3>
-<p class="text-gray-600">Kondisi operasional monitoring</p>
+<h3 class="text-lg sm:text-xl font-display font-bold text-gray-800">Status Sistem</h3>
+<p class="text-gray-600 text-xs sm:text-sm">Kondisi operasional monitoring</p>
 </div>
 </div>
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-<div class="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-<i data-feather="check-circle" class="w-6 h-6 text-white"></i>
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+<div class="bg-gradient-to-br from-green-50 to-emerald-50 p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-green-200">
+<div class="flex items-center gap-3 sm:gap-4">
+<div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-500 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="check-circle" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
 </div>
 <div>
-<p class="font-semibold text-green-800">Sensor aktif</p>
-<p class="text-green-600 text-sm">{{ \App\Models\Sensor::where('status','active')->count() }}/{{ \App\Models\Sensor::count() }} sensor online</p>
-</div>
-</div>
-</div>
-
-<div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-2xl border border-blue-200">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
-<i data-feather="radio" class="w-6 h-6 text-white"></i>
-</div>
-<div>
-<p class="font-semibold text-blue-800">Komunikasi LoRa</p>
-<p class="text-blue-600 text-sm">Signal: {{ $device?->signal_strength ?? '-' }}%</p>
+<p class="font-semibold text-green-800 text-sm sm:text-base">Sensor aktif</p>
+<p class="text-green-600 text-xs sm:text-sm">{{ \App\Models\Sensor::where('status','active')->count() }}/{{ \App\Models\Sensor::count() }} sensor online</p>
 </div>
 </div>
 </div>
 
-<div class="bg-gradient-to-br from-purple-50 to-pink-50 p-6 rounded-2xl border border-purple-200">
-<div class="flex items-center gap-4">
-<div class="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-<i data-feather="clock" class="w-6 h-6 text-white"></i>
+<div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-blue-200">
+<div class="flex items-center gap-3 sm:gap-4">
+<div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-500 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="radio" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
 </div>
 <div>
-<p class="font-semibold text-purple-800">Update terakhir</p>
-<p class="text-purple-600 text-sm">{{ $lastUpdate ? $lastUpdate->diffForHumans() : 'Belum ada data' }}</p>
+<p class="font-semibold text-blue-800 text-sm sm:text-base">Komunikasi LoRa</p>
+<p class="text-blue-600 text-xs sm:text-sm">Signal: {{ $device?->signal_strength ?? '-' }}%</p>
+</div>
+</div>
+</div>
+
+<div class="bg-gradient-to-br from-purple-50 to-pink-50 p-4 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl border border-purple-200">
+<div class="flex items-center gap-3 sm:gap-4">
+<div class="w-10 h-10 sm:w-12 sm:h-12 bg-purple-500 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+<i data-feather="clock" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
+</div>
+<div>
+<p class="font-semibold text-purple-800 text-sm sm:text-base">Update terakhir</p>
+<p class="text-purple-600 text-xs sm:text-sm">{{ $lastUpdate ? $lastUpdate->diffForHumans() : 'Belum ada data' }}</p>
 </div>
 </div>
 </div>
