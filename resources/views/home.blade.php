@@ -56,14 +56,14 @@ Login
 </div>
 </div>
 
-<h1 class="text-6xl md:text-7xl lg:text-8xl font-display font-bold text-white leading-tight mb-6">
+<h1 class="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-bold text-white leading-tight mb-6">
 Sistem Monitoring
 <span class="block gradient-text bg-gradient-to-r from-blue-200 to-purple-200 bg-clip-text text-transparent">
 Keamanan IoT
 </span>
 </h1>
 
-<p class="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto mb-12 leading-relaxed">
+<p class="text-base sm:text-lg md:text-xl lg:text-2xl text-blue-100 max-w-3xl mx-auto mb-8 md:mb-12 leading-relaxed px-4">
 Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, getaran SW-420, reed switch, dan komunikasi LoRa untuk pengawasan realtime.
 </p>
 
@@ -96,7 +96,7 @@ Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, 
 <p class="text-xl text-gray-600">Teknologi monitoring keamanan yang dapat diandalkan</p>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
 <div class="group text-center p-8 bg-white rounded-2xl shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 border border-gray-100">
 <div class="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
 <i data-feather="layers" class="w-8 h-8 text-white"></i>
@@ -142,7 +142,7 @@ Platform monitoring keamanan rak berbasis Internet of Things dengan sensor PIR, 
 <p class="text-xl text-gray-600 max-w-2xl mx-auto">Teknologi sensor terdepan untuk monitoring keamanan yang komprehensif</p>
 </div>
 
-<div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
 <!-- PIR -->
 <div class="group bg-white p-8 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-4 transition-all duration-500 text-center border border-gray-100 relative overflow-hidden">
 <div class="absolute inset-0 bg-gradient-to-br from-indigo-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>

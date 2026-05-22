@@ -7,6 +7,7 @@
 
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <SPI.h>
 #include <LoRa.h>
@@ -18,7 +19,7 @@ const char* ssid     = "gege";
 const char* password = "biasaaja";
 
 // GANTI DENGAN IP LARAVEL KAMU
-const char* API_BASE = "http://10.185.214.166:8000/api";
+const char* API_BASE = "https://keamanan-rak-barang-production.up.railway.app/api";
 
 // ============================================
 // DEVICE
