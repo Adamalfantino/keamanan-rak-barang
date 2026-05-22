@@ -36,15 +36,13 @@ Route::post('/register', function (\Illuminate\Http\Request $request) {
         'password.confirmed' => 'Konfirmasi password tidak cocok.',
     ]);
 
-    $user = \App\Models\User::create([
+    \App\Models\User::create([
         'name'     => $request->name,
         'email'    => $request->email,
         'password' => $request->password,
     ]);
 
-    \Illuminate\Support\Facades\Auth::login($user);
-
-    return redirect()->route('dashboard')->with('success', 'Akun berhasil dibuat! Selamat datang, ' . $user->name . '.');
+    return redirect()->route('login')->with('success', 'Akun berhasil dibuat! Silakan login dengan akun Anda.');
 })->name('register.process');
 
 // Route untuk proses login
