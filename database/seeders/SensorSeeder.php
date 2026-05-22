@@ -2,22 +2,22 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Sensor;
+use App\Models\Device;
 use Carbon\Carbon;
 
 class SensorSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
+        $device = Device::where('device_id', 'RACK_A_001')->first();
+
+        if (!$device) return;
+
         $sensors = [
-            // Sensors untuk Device Rak A (device_id = 1)
             [
-                'device_id' => 1,
+                'device_id' => $device->id,
                 'name' => 'PIR Motion Sensor',
                 'type' => 'pir',
                 'pin_number' => 'GPIO2',
@@ -33,11 +33,9 @@ class SensorSeeder extends Seeder
                 ]),
                 'description' => 'Sensor PIR untuk mendeteksi gerakan manusia di area rak',
                 'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ],
             [
-                'device_id' => 1,
+                'device_id' => $device->id,
                 'name' => 'Vibration Sensor SW-420',
                 'type' => 'vibration',
                 'pin_number' => 'GPIO3',
@@ -53,11 +51,9 @@ class SensorSeeder extends Seeder
                 ]),
                 'description' => 'Sensor getaran SW-420 untuk mendeteksi guncangan pada rak',
                 'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ],
             [
-                'device_id' => 1,
+                'device_id' => $device->id,
                 'name' => 'Reed Switch',
                 'type' => 'reed_switch',
                 'pin_number' => 'GPIO4',
@@ -72,11 +68,17 @@ class SensorSeeder extends Seeder
                 ]),
                 'description' => 'Reed switch untuk mendeteksi status buka/tutup rak',
                 'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ],
         ];
 
-        DB::table('sensors')->insert($sensors);
+        foreach ($sensors as $sensor) {
+            Sensor::firstOrCreate(
+                [
+                    'device_id' => $sensor['device_id'],
+                    'type' => $sensor['type']
+                ],
+                $sensor
+            );
+        }
     }
 }

@@ -2,16 +2,12 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Device;
 use Carbon\Carbon;
 
 class DeviceSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
         $devices = [
@@ -33,8 +29,6 @@ class DeviceSeeder extends Seeder
                 ]),
                 'description' => 'Node sensor utama untuk monitoring rak dengan sensor PIR, getaran, dan reed switch',
                 'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ],
             [
                 'name' => 'LoRa Gateway',
@@ -54,8 +48,6 @@ class DeviceSeeder extends Seeder
                 ]),
                 'description' => 'Gateway LoRa untuk menerima data dari semua sensor node',
                 'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ],
             [
                 'name' => 'Server Monitoring',
@@ -75,11 +67,14 @@ class DeviceSeeder extends Seeder
                 ]),
                 'description' => 'Server utama untuk processing dan storage data monitoring',
                 'is_active' => true,
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
             ],
         ];
 
-        DB::table('devices')->insert($devices);
+        foreach ($devices as $device) {
+            Device::firstOrCreate(
+                ['device_id' => $device['device_id']],
+                $device
+            );
+        }
     }
 }
