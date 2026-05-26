@@ -17,13 +17,20 @@ class DoorAccessController extends Controller
 {
     /**
      * Terima data sensor Reed Switch (Door Access) dari IoT device
+     *
+     * Mendukung dua format payload:
+     * 1. Format ESP32 LoRa raw: { node_id, gateway_id, type, door_opened, device_id }
+     * 2. Format MQTT buildPayload: { device_id, node, type, door }
      */
     public function receiveData(Request $request): JsonResponse
     {
         try {
+            // Normalisasi payload dari ESP32
+            $input = $this->normalizeEsp32Payload($request->all());
+
             // Validasi input
-            $validator = Validator::make($request->all(), [
-                'device_id' => 'required|exists:devices,id',
+            $validator = Validator::make($input, [
+                'device_id' => 'nullable|integer',
                 'door_opened' => 'required|boolean',
                 'access_method' => 'nullable|string|in:keycard,manual,force,emergency,maintenance,unknown',
                 'user_id_card' => 'nullable|string|max:50',
@@ -31,7 +38,7 @@ class DoorAccessController extends Controller
                 'door_location' => 'nullable|string|in:front_door,back_door,side_door,main_entrance',
                 'is_forced_entry' => 'nullable|boolean',
                 'door_opened_at' => 'nullable|date',
-                'door_closed_at' => 'nullable|date|after:door_opened_at',
+                'door_closed_at' => 'nullable|date',
                 'metadata' => 'nullable|array'
             ]);
 
@@ -44,6 +51,17 @@ class DoorAccessController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Resolve device
+            $device = $this->resolveDevice($data, $input);
+            if (!$device) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Device not found. Pastikan device sudah terdaftar di database.',
+                ], 422);
+            }
+            $data['device_id'] = $device->id;
+
             $recordedAt = now();
             
             // Hitung durasi jika ada door_opened_at dan door_closed_at
@@ -238,6 +256,53 @@ class DoorAccessController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Normalisasi payload dari ESP32 ke format yang diharapkan controller.
+     *
+     * ESP32 LoRa raw: { node_id, gateway_id, type, door_opened, device_id }
+     * ESP32 MQTT buildPayload: { device_id, node, type, door }
+     */
+    private function normalizeEsp32Payload(array $input): array
+    {
+        // Normalisasi door_opened: bisa dari "door" (MQTT buildPayload)
+        if (!isset($input['door_opened']) && isset($input['door'])) {
+            $input['door_opened'] = $input['door'];
+        }
+        // Atau dari "door_open" (format lain)
+        if (!isset($input['door_opened']) && isset($input['door_open'])) {
+            $input['door_opened'] = $input['door_open'];
+        }
+
+        // Pastikan boolean
+        if (isset($input['door_opened'])) {
+            $input['door_opened'] = filter_var($input['door_opened'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (isset($input['is_forced_entry'])) {
+            $input['is_forced_entry'] = filter_var($input['is_forced_entry'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $input;
+    }
+
+    /**
+     * Resolve device dari payload — cari by id, fallback ke device pertama aktif
+     */
+    private function resolveDevice(array $data, array $rawInput): ?\App\Models\Device
+    {
+        if (!empty($data['device_id'])) {
+            $device = \App\Models\Device::find((int) $data['device_id']);
+            if ($device) return $device;
+        }
+
+        $nodeId = $rawInput['node_id'] ?? $rawInput['node'] ?? null;
+        if ($nodeId) {
+            $device = \App\Models\Device::where('device_id', $nodeId)->first();
+            if ($device) return $device;
+        }
+
+        return \App\Models\Device::where('is_active', true)->first() ?? \App\Models\Device::first();
     }
 
     /**

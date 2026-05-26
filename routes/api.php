@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\VibrationController;
 use App\Http\Controllers\Api\PirController;
 use App\Http\Controllers\Api\DoorAccessController;
 use App\Http\Controllers\Api\LoRaController;
+use App\Http\Controllers\Api\MqttController;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +78,27 @@ Route::prefix('lora')->group(function () {
     
     // Process unprocessed messages
     Route::post('/process-messages', [LoRaController::class, 'processUnprocessedMessages']);
+});
+
+// ============================================================
+// MQTT Integration Routes
+// ============================================================
+Route::prefix('mqtt')->group(function () {
+    // Terima data dari MQTT bridge/webhook (dipanggil oleh bridge yang subscribe ke HiveMQ)
+    // POST body: { "topic": "keamanan/pir", "payload": "{...json...}" }
+    Route::post('/ingest', [MqttController::class, 'ingest']);
+
+    // Terima batch data dari MQTT bridge
+    // POST body: { "messages": [ {"topic":"...", "payload":"..."}, ... ] }
+    Route::post('/ingest-batch', [MqttController::class, 'ingestBatch']);
+
+    // Publish pesan ke MQTT broker dari backend
+    // POST body: { "topic": "keamanan/command", "payload": {...} }
+    Route::post('/publish', [MqttController::class, 'publish']);
+
+    // Kirim command ke ESP32 node via MQTT
+    // POST body: { "node_id": "NODE_001", "command": "REBOOT", "params": {} }
+    Route::post('/command', [MqttController::class, 'sendCommand']);
 });
 
 // Device Status API — untuk polling online/offline dari frontend

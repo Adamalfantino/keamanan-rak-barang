@@ -16,13 +16,20 @@ class VibrationController extends Controller
 {
     /**
      * Terima data sensor getar dari IoT device
+     *
+     * Mendukung dua format payload:
+     * 1. Format ESP32 LoRa raw: { node_id, gateway_id, type, x_axis, y_axis, z_axis, device_id }
+     * 2. Format MQTT buildPayload: { device_id, node, type, x, y, z }
      */
     public function receiveData(Request $request): JsonResponse
     {
         try {
+            // Normalisasi payload dari ESP32
+            $input = $this->normalizeEsp32Payload($request->all());
+
             // Validasi input
-            $validator = Validator::make($request->all(), [
-                'device_id' => 'required|exists:devices,id',
+            $validator = Validator::make($input, [
+                'device_id' => 'nullable|integer',
                 'x_axis' => 'required|numeric',
                 'y_axis' => 'required|numeric', 
                 'z_axis' => 'required|numeric',
@@ -39,6 +46,16 @@ class VibrationController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Resolve device
+            $device = $this->resolveDevice($data, $input);
+            if (!$device) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Device not found. Pastikan device sudah terdaftar di database.',
+                ], 422);
+            }
+            $data['device_id'] = $device->id;
             
             // Hitung magnitude getaran
             $magnitude = sqrt(
@@ -181,6 +198,55 @@ class VibrationController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Normalisasi payload dari ESP32 ke format yang diharapkan controller.
+     *
+     * ESP32 LoRa raw: { node_id, gateway_id, type, x_axis, y_axis, z_axis, device_id }
+     * ESP32 MQTT buildPayload: { device_id, node, type, x, y, z }
+     */
+    private function normalizeEsp32Payload(array $input): array
+    {
+        // Normalisasi axis: "x" -> "x_axis", "y" -> "y_axis", "z" -> "z_axis"
+        if (!isset($input['x_axis']) && isset($input['x'])) {
+            $input['x_axis'] = $input['x'];
+        }
+        if (!isset($input['y_axis']) && isset($input['y'])) {
+            $input['y_axis'] = $input['y'];
+        }
+        if (!isset($input['z_axis']) && isset($input['z'])) {
+            $input['z_axis'] = $input['z'];
+        }
+
+        // Jika hanya ada x_axis tapi tidak y dan z (ESP32 hanya kirim x dari buildPayload)
+        if (isset($input['x_axis']) && !isset($input['y_axis'])) {
+            $input['y_axis'] = 0;
+        }
+        if (isset($input['x_axis']) && !isset($input['z_axis'])) {
+            $input['z_axis'] = 0;
+        }
+
+        return $input;
+    }
+
+    /**
+     * Resolve device dari payload — cari by id, fallback ke device pertama aktif
+     */
+    private function resolveDevice(array $data, array $rawInput): ?\App\Models\Device
+    {
+        if (!empty($data['device_id'])) {
+            $device = \App\Models\Device::find((int) $data['device_id']);
+            if ($device) return $device;
+        }
+
+        $nodeId = $rawInput['node_id'] ?? $rawInput['node'] ?? null;
+        if ($nodeId) {
+            $device = \App\Models\Device::where('device_id', $nodeId)->first();
+            if ($device) return $device;
+        }
+
+        return \App\Models\Device::where('is_active', true)->first() ?? \App\Models\Device::first();
     }
 
     /**

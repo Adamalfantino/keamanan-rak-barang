@@ -110,16 +110,15 @@ class LoRaProcessingService
     private function processVibrationData(LoRaMessage $message, array $data): array
     {
         try {
-            // Hitung magnitude
-            $magnitude = sqrt(
-                pow($data['x_axis'] ?? 0, 2) + 
-                pow($data['y_axis'] ?? 0, 2) + 
-                pow($data['z_axis'] ?? 0, 2)
-            );
+            // Normalisasi field — JSON ESP32 bisa kirim "x" atau "x_axis"
+            $xAxis = (float) ($data['x_axis'] ?? $data['x'] ?? 0);
+            $yAxis = (float) ($data['y_axis'] ?? $data['y'] ?? 0);
+            $zAxis = (float) ($data['z_axis'] ?? $data['z'] ?? 0);
 
-            $threshold = $data['threshold'] ?? 2.0;
+            $magnitude = sqrt(pow($xAxis, 2) + pow($yAxis, 2) + pow($zAxis, 2));
+            $threshold  = (float) ($data['threshold'] ?? 2.0);
             $isAbnormal = $magnitude > $threshold;
-            
+
             $status = 'normal';
             if ($magnitude > $threshold * 1.5) {
                 $status = 'critical';
@@ -127,32 +126,42 @@ class LoRaProcessingService
                 $status = 'warning';
             }
 
+            // Resolve device_id
+            $deviceId = $message->device_id ?? Device::where('is_active', true)->first()?->id ?? Device::first()?->id;
+
+            if (!$deviceId) {
+                return ['success' => false, 'error' => 'No device found'];
+            }
+
             // Simpan ke VibrationReading
             $vibrationReading = VibrationReading::create([
-                'device_id' => $message->device_id,
-                'x_axis' => $data['x_axis'] ?? 0,
-                'y_axis' => $data['y_axis'] ?? 0,
-                'z_axis' => $data['z_axis'] ?? 0,
-                'magnitude' => $magnitude,
+                'device_id'   => $deviceId,
+                'x_axis'      => $xAxis,
+                'y_axis'      => $yAxis,
+                'z_axis'      => $zAxis,
+                'magnitude'   => $magnitude,
                 'is_abnormal' => $isAbnormal,
-                'threshold' => $threshold,
-                'status' => $status,
-                'metadata' => [
+                'threshold'   => $threshold,
+                'status'      => $status,
+                'metadata'    => [
                     'lora_message_id' => $message->id,
-                    'node_id' => $message->node_id,
-                    'rssi' => $message->rssi,
-                    'snr' => $message->snr
+                    'node_id'         => $message->node_id,
+                    'rssi'            => $message->rssi,
+                    'snr'             => $message->snr,
+                    'source'          => 'lora',
                 ],
-                'recorded_at' => $message->received_at ?? now()
+                'recorded_at' => $message->received_at ?? now(),
             ]);
 
+            Device::markOnline($deviceId);
+
             return [
-                'success' => true,
-                'action' => 'vibration_data_saved',
+                'success'              => true,
+                'action'               => 'vibration_data_saved',
                 'vibration_reading_id' => $vibrationReading->id,
-                'magnitude' => $magnitude,
-                'status' => $status,
-                'is_abnormal' => $isAbnormal
+                'magnitude'            => $magnitude,
+                'status'               => $status,
+                'is_abnormal'          => $isAbnormal,
             ];
 
         } catch (\Exception $e) {
@@ -167,6 +176,13 @@ class LoRaProcessingService
     {
         try {
             $isAuthorizedTime = $this->checkAuthorizedTime();
+
+            // Normalisasi field — JSON ESP32 bisa kirim "motion" atau "motion_detected"
+            $motionDetected = filter_var(
+                $data['motion_detected'] ?? $data['motion'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
             $isSuspicious = $this->determineSuspiciousPirMotion($data, $isAuthorizedTime);
             
             $motionType = 'normal';
@@ -176,31 +192,41 @@ class LoRaProcessingService
                 $motionType = 'suspicious';
             }
 
+            // Resolve device_id — gunakan dari message atau fallback
+            $deviceId = $message->device_id ?? Device::where('is_active', true)->first()?->id ?? Device::first()?->id;
+
+            if (!$deviceId) {
+                return ['success' => false, 'error' => 'No device found'];
+            }
+
             // Simpan ke PirReading
             $pirReading = PirReading::create([
-                'device_id' => $message->device_id,
-                'motion_detected' => $data['motion_detected'] ?? false,
-                'motion_intensity' => $data['motion_intensity'] ?? 0,
-                'duration_seconds' => $data['duration_seconds'] ?? 0,
+                'device_id'          => $deviceId,
+                'motion_detected'    => $motionDetected,
+                'motion_intensity'   => (int) ($data['motion_intensity'] ?? ($motionDetected ? 50 : 0)),
+                'duration_seconds'   => (int) ($data['duration_seconds'] ?? 0),
                 'is_authorized_time' => $isAuthorizedTime,
-                'is_suspicious' => $isSuspicious,
-                'motion_type' => $motionType,
-                'detection_zone' => $data['detection_zone'] ?? 'center',
-                'metadata' => [
+                'is_suspicious'      => $isSuspicious,
+                'motion_type'        => $motionType,
+                'detection_zone'     => $data['detection_zone'] ?? 'center',
+                'metadata'           => [
                     'lora_message_id' => $message->id,
-                    'node_id' => $message->node_id,
-                    'rssi' => $message->rssi,
-                    'snr' => $message->snr
+                    'node_id'         => $message->node_id,
+                    'rssi'            => $message->rssi,
+                    'snr'             => $message->snr,
+                    'source'          => 'lora',
                 ],
-                'recorded_at' => $message->received_at ?? now()
+                'recorded_at' => $message->received_at ?? now(),
             ]);
 
+            Device::markOnline($deviceId);
+
             return [
-                'success' => true,
-                'action' => 'pir_data_saved',
+                'success'        => true,
+                'action'         => 'pir_data_saved',
                 'pir_reading_id' => $pirReading->id,
-                'motion_type' => $motionType,
-                'is_suspicious' => $isSuspicious
+                'motion_type'    => $motionType,
+                'is_suspicious'  => $isSuspicious,
             ];
 
         } catch (\Exception $e) {
@@ -215,38 +241,54 @@ class LoRaProcessingService
     {
         try {
             $isAuthorizedTime = $this->checkAuthorizedTime();
+
+            // Normalisasi field — JSON ESP32 bisa kirim "door", "door_opened", atau "door_open"
+            $doorOpened = filter_var(
+                $data['door_opened'] ?? $data['door'] ?? $data['door_open'] ?? false,
+                FILTER_VALIDATE_BOOLEAN
+            );
+
             $isAuthorizedAccess = $this->determineAuthorizedDoorAccess($data, $isAuthorizedTime);
-            $isSuspicious = $this->determineSuspiciousDoorAccess($data, $isAuthorizedAccess);
-            
-            $accessType = $this->determineDoorAccessType($data, $isAuthorizedAccess, $isAuthorizedTime);
+            $isSuspicious       = $this->determineSuspiciousDoorAccess($data, $isAuthorizedAccess);
+            $accessType         = $this->determineDoorAccessType($data, $isAuthorizedAccess, $isAuthorizedTime);
+
+            // Resolve device_id
+            $deviceId = $message->device_id ?? Device::where('is_active', true)->first()?->id ?? Device::first()?->id;
+
+            if (!$deviceId) {
+                return ['success' => false, 'error' => 'No device found'];
+            }
 
             // Simpan ke DoorAccessReading
             $doorReading = DoorAccessReading::create([
-                'device_id' => $message->device_id,
-                'door_opened' => $data['door_opened'] ?? false,
-                'is_authorized_access' => $isAuthorizedAccess,
-                'access_type' => $accessType,
-                'access_method' => $data['access_method'] ?? 'unknown',
-                'user_id_card' => $data['user_id_card'] ?? null,
-                'duration_seconds' => $data['duration_seconds'] ?? 0,
-                'is_suspicious' => $isSuspicious,
-                'door_location' => $data['door_location'] ?? 'main_entrance',
-                'is_forced_entry' => ($data['access_method'] ?? '') === 'force',
-                'metadata' => [
+                'device_id'           => $deviceId,
+                'door_opened'         => $doorOpened,
+                'is_authorized_access'=> $isAuthorizedAccess,
+                'access_type'         => $accessType,
+                'access_method'       => $data['access_method'] ?? 'unknown',
+                'user_id_card'        => $data['user_id_card'] ?? null,
+                'duration_seconds'    => (int) ($data['duration_seconds'] ?? 0),
+                'is_suspicious'       => $isSuspicious,
+                'door_location'       => $data['door_location'] ?? 'main_entrance',
+                'is_forced_entry'     => ($data['access_method'] ?? '') === 'force',
+                'metadata'            => [
                     'lora_message_id' => $message->id,
-                    'node_id' => $message->node_id,
-                    'rssi' => $message->rssi,
-                    'snr' => $message->snr
+                    'node_id'         => $message->node_id,
+                    'rssi'            => $message->rssi,
+                    'snr'             => $message->snr,
+                    'source'          => 'lora',
                 ],
-                'recorded_at' => $message->received_at ?? now()
+                'recorded_at' => $message->received_at ?? now(),
             ]);
 
+            Device::markOnline($deviceId);
+
             return [
-                'success' => true,
-                'action' => 'door_access_data_saved',
+                'success'         => true,
+                'action'          => 'door_access_data_saved',
                 'door_reading_id' => $doorReading->id,
-                'access_type' => $accessType,
-                'is_suspicious' => $isSuspicious
+                'access_type'     => $accessType,
+                'is_suspicious'   => $isSuspicious,
             ];
 
         } catch (\Exception $e) {

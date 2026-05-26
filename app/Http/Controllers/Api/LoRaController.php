@@ -22,65 +22,84 @@ class LoRaController extends Controller
     }
 
     /**
-     * Terima data LoRa dari gateway
+     * Terima data LoRa dari gateway ESP32
+     *
+     * ESP32 mengirim JSON mentah langsung sebagai body, contoh:
+     * { "node_id":"NODE_001", "gateway_id":"GATEWAY_001", "type":"HEARTBEAT", "device_id":1 }
+     *
+     * Atau format lama dengan field payload terpisah:
+     * { "node_id":"NODE_001", "payload":"HEARTBEAT|85|90|3600" }
      */
     public function receiveMessage(Request $request): JsonResponse
     {
         try {
+            $input = $request->all();
+
+            // Normalisasi: jika ESP32 kirim JSON mentah (ada field "type" tapi tidak ada "payload"),
+            // jadikan seluruh body sebagai payload string
+            if (isset($input['type']) && !isset($input['payload'])) {
+                $input['node_id']    = $input['node_id'] ?? $input['node'] ?? 'NODE_001';
+                $input['gateway_id'] = $input['gateway_id'] ?? 'GATEWAY_001';
+                $input['payload']    = json_encode($input); // simpan JSON asli sebagai payload
+            }
+
             // Validasi input
-            $validator = Validator::make($request->all(), [
-                'node_id' => 'required|string|max:50',
-                'gateway_id' => 'nullable|string|max:50',
-                'payload' => 'required|string',
-                'rssi' => 'nullable|numeric',
-                'snr' => 'nullable|numeric',
+            $validator = Validator::make($input, [
+                'node_id'          => 'required|string|max:50',
+                'gateway_id'       => 'nullable|string|max:50',
+                'payload'          => 'required|string',
+                'rssi'             => 'nullable|numeric',
+                'snr'              => 'nullable|numeric',
                 'spreading_factor' => 'nullable|integer|min:7|max:12',
-                'frequency' => 'nullable|numeric',
-                'bandwidth' => 'nullable|integer',
-                'received_at' => 'nullable|date',
-                'metadata' => 'nullable|array'
+                'frequency'        => 'nullable|numeric',
+                'bandwidth'        => 'nullable|integer',
+                'received_at'      => 'nullable|date',
+                'metadata'         => 'nullable|array',
             ]);
 
             if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'errors'  => $validator->errors(),
                 ], 422);
             }
 
             $data = $validator->validated();
-            
+
             // Tentukan message type berdasarkan payload
             $messageType = $this->determineMessageType($data['payload']);
-            
-            // Cari device berdasarkan node_id atau device_id
+
+            // Cari device berdasarkan node_id, device_id, atau fallback ke device pertama
             $device = Device::where('device_id', $data['node_id'])
                 ->orWhere('name', 'like', '%' . $data['node_id'] . '%')
                 ->first();
-            
-            // Jika tidak ketemu, pakai device pertama yang ada
+
+            if (!$device && isset($input['device_id'])) {
+                $device = Device::find((int) $input['device_id']);
+            }
+
             if (!$device) {
-                $device = Device::where('type', 'sensor_node')->first();
+                $device = Device::where('is_active', true)->first() ?? Device::first();
             }
 
             // Simpan LoRa message
             $loraMessage = LoRaMessage::create([
-                'device_id' => $device?->id,
-                'node_id' => $data['node_id'],
-                'gateway_id' => $data['gateway_id'] ?? 'GATEWAY_001',
-                'direction' => 'inbound',
-                'message_type' => $messageType,
-                'payload' => $data['payload'],
-                'rssi' => $data['rssi'] ?? null,
-                'snr' => $data['snr'] ?? null,
+                'device_id'        => $device?->id,
+                'node_id'          => $data['node_id'],
+                'gateway_id'       => $data['gateway_id'] ?? 'GATEWAY_001',
+                'direction'        => 'inbound',
+                'message_type'     => $messageType,
+                'payload'          => $data['payload'],
+                'rssi'             => $data['rssi'] ?? null,
+                'snr'              => $data['snr'] ?? null,
                 'spreading_factor' => $data['spreading_factor'] ?? null,
-                'frequency' => $data['frequency'] ?? null,
-                'bandwidth' => $data['bandwidth'] ?? null,
-                'is_processed' => false,
-                'status' => 'received',
-                'metadata' => $data['metadata'] ?? null,
-                'received_at' => isset($data['received_at']) ? Carbon::parse($data['received_at']) : now()
+                'frequency'        => $data['frequency'] ?? null,
+                'bandwidth'        => $data['bandwidth'] ?? null,
+                'is_processed'     => false,
+                'status'           => 'received',
+                'metadata'         => $data['metadata'] ?? null,
+                'received_at'      => isset($data['received_at']) ? Carbon::parse($data['received_at']) : now(),
             ]);
 
             // Process message secara asynchronous
@@ -408,24 +427,36 @@ class LoRaController extends Controller
 
     /**
      * Tentukan message type berdasarkan payload
+     *
+     * Mendukung dua format:
+     * 1. Pipe-delimited: "SENSOR|PIR|...", "HEARTBEAT|85|..."
+     * 2. JSON dari ESP32: {"type":"HEARTBEAT",...}, {"type":"PIR",...}
      */
     private function determineMessageType(string $payload): string
     {
-        $upperPayload = strtoupper($payload);
-        
-        if (str_starts_with($upperPayload, 'SENSOR|')) {
-            return 'sensor_data';
-        } elseif (str_starts_with($upperPayload, 'HEARTBEAT|')) {
-            return 'heartbeat';
-        } elseif (str_starts_with($upperPayload, 'COMMAND|')) {
-            return 'command';
-        } elseif (str_starts_with($upperPayload, 'ACK|')) {
-            return 'ack';
-        } elseif (str_starts_with($upperPayload, 'CONFIG|')) {
-            return 'config';
-        } else {
-            return 'sensor_data'; // Default assumption
+        // Coba parse sebagai JSON dulu
+        $json = json_decode($payload, true);
+        if (json_last_error() === JSON_ERROR_NONE && isset($json['type'])) {
+            $type = strtoupper($json['type']);
+            return match ($type) {
+                'HEARTBEAT'  => 'heartbeat',
+                'PIR', 'REED', 'VIBRATION', 'DOOR' => 'sensor_data',
+                'ACK'        => 'ack',
+                'COMMAND'    => 'command',
+                'CONFIG'     => 'config',
+                default      => 'sensor_data',
+            };
         }
+
+        // Format pipe-delimited
+        $upperPayload = strtoupper($payload);
+        if (str_starts_with($upperPayload, 'SENSOR|'))    return 'sensor_data';
+        if (str_starts_with($upperPayload, 'HEARTBEAT|')) return 'heartbeat';
+        if (str_starts_with($upperPayload, 'COMMAND|'))   return 'command';
+        if (str_starts_with($upperPayload, 'ACK|'))       return 'ack';
+        if (str_starts_with($upperPayload, 'CONFIG|'))    return 'config';
+
+        return 'sensor_data'; // default
     }
 
     /**

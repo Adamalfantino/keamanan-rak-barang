@@ -17,19 +17,26 @@ class PirController extends Controller
 {
     /**
      * Terima data sensor PIR dari IoT device
+     *
+     * Mendukung dua format payload:
+     * 1. Format ESP32 LoRa raw: { node_id, gateway_id, type, motion_detected, device_id }
+     * 2. Format HTTP langsung:  { device_id, motion_detected, motion_intensity, ... }
      */
     public function receiveData(Request $request): JsonResponse
     {
         try {
-            // Validasi input
-            $validator = Validator::make($request->all(), [
-                'device_id' => 'required|exists:devices,id',
+            // Normalisasi payload dari ESP32 sebelum validasi
+            $input = $this->normalizeEsp32Payload($request->all(), 'PIR');
+
+            // Validasi input — device_id tidak wajib ada di DB, fallback ke device pertama
+            $validator = Validator::make($input, [
+                'device_id' => 'nullable|integer',
                 'motion_detected' => 'required|boolean',
                 'motion_intensity' => 'nullable|integer|min:0|max:100',
                 'duration_seconds' => 'nullable|integer|min:0',
                 'detection_zone' => 'nullable|string|in:front,back,side,center',
                 'motion_start' => 'nullable|date',
-                'motion_end' => 'nullable|date|after:motion_start',
+                'motion_end' => 'nullable|date',
                 'metadata' => 'nullable|array'
             ]);
 
@@ -42,6 +49,17 @@ class PirController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Resolve device — cari by id, fallback ke device pertama
+            $device = $this->resolveDevice($data, $input);
+            if (!$device) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Device not found. Pastikan device sudah terdaftar di database.',
+                ], 422);
+            }
+            $data['device_id'] = $device->id;
+
             $recordedAt = now();
             
             // Cek apakah dalam jam kerja
@@ -220,6 +238,53 @@ class PirController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Normalisasi payload dari ESP32 ke format yang diharapkan controller.
+     *
+     * ESP32 mengirim JSON LoRa mentah:
+     * { "node_id":"NODE_001", "gateway_id":"GATEWAY_001", "type":"PIR",
+     *   "motion_detected":true, "device_id":1 }
+     *
+     * Atau via buildPayload (MQTT):
+     * { "device_id":1, "node":"NODE_001", "type":"PIR", "motion":true }
+     */
+    private function normalizeEsp32Payload(array $input, string $expectedType): array
+    {
+        // Normalisasi motion_detected: bisa dari "motion" (MQTT buildPayload)
+        if (!isset($input['motion_detected']) && isset($input['motion'])) {
+            $input['motion_detected'] = $input['motion'];
+        }
+
+        // Pastikan boolean
+        if (isset($input['motion_detected'])) {
+            $input['motion_detected'] = filter_var($input['motion_detected'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return $input;
+    }
+
+    /**
+     * Resolve device dari payload — cari by id, fallback ke device pertama aktif
+     */
+    private function resolveDevice(array $data, array $rawInput): ?\App\Models\Device
+    {
+        // Coba by numeric device_id
+        if (!empty($data['device_id'])) {
+            $device = \App\Models\Device::find((int) $data['device_id']);
+            if ($device) return $device;
+        }
+
+        // Coba by node_id dari raw input
+        $nodeId = $rawInput['node_id'] ?? $rawInput['node'] ?? null;
+        if ($nodeId) {
+            $device = \App\Models\Device::where('device_id', $nodeId)->first();
+            if ($device) return $device;
+        }
+
+        // Fallback: device pertama yang aktif
+        return \App\Models\Device::where('is_active', true)->first() ?? \App\Models\Device::first();
     }
 
     /**

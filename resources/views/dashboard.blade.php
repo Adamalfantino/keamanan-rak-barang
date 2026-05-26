@@ -734,7 +734,9 @@ async function fetchSensorStatus() {
     if (reedRes?.success && reedRes.data?.length > 0) {
       const latest = reedRes.data[0];
       const age = (now - new Date(latest.recorded_at).getTime()) / 1000;
-      reedActive = latest.door_open && age <= DETECTION_WINDOW;
+      // DoorAccessReading pakai "door_opened", ReedSwitchReading pakai "door_open"
+      const isOpen = latest.door_opened ?? latest.door_open ?? false;
+      reedActive = isOpen && age <= DETECTION_WINDOW;
     }
 
     const anyActive = pirActive || sw420Active || reedActive;

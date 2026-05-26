@@ -50,10 +50,21 @@ class LoRaMessage extends Model
 
     /**
      * Parse LoRa payload berdasarkan message type
+     *
+     * Mendukung dua format:
+     * 1. JSON dari ESP32: {"node_id":"NODE_001","type":"PIR","motion_detected":true,...}
+     * 2. Pipe-delimited: "SENSOR|PIR|1|85|120|front"
      */
     public function parsePayload(): array
     {
         try {
+            // Coba parse sebagai JSON dulu (format ESP32 baru)
+            $json = json_decode($this->payload, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($json)) {
+                return $this->parseJsonPayload($json);
+            }
+
+            // Fallback ke format pipe-delimited (format lama)
             switch ($this->message_type) {
                 case 'sensor_data':
                     return $this->parseSensorData();
@@ -71,9 +82,70 @@ class LoRaMessage extends Model
         } catch (\Exception $e) {
             Log::error("LoRa payload parsing failed: " . $e->getMessage(), [
                 'message_id' => $this->id,
-                'payload' => $this->payload
+                'payload'    => $this->payload,
             ]);
             return ['error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Parse JSON payload dari ESP32
+     *
+     * Format ESP32 routePacket (raw LoRa JSON):
+     * { "node_id":"NODE_001", "gateway_id":"GATEWAY_001", "type":"PIR",
+     *   "motion_detected":true, "device_id":1 }
+     *
+     * Format ESP32 buildPayload (MQTT):
+     * { "device_id":1, "node":"NODE_001", "type":"PIR", "motion":true }
+     */
+    private function parseJsonPayload(array $json): array
+    {
+        $type = strtoupper($json['type'] ?? '');
+
+        switch ($type) {
+            case 'PIR':
+                return [
+                    'sensor_type'      => 'PIR',
+                    'motion_detected'  => filter_var($json['motion_detected'] ?? $json['motion'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'motion_intensity' => (int) ($json['motion_intensity'] ?? 50),
+                    'duration_seconds' => (int) ($json['duration_seconds'] ?? 0),
+                    'detection_zone'   => $json['detection_zone'] ?? 'center',
+                ];
+
+            case 'REED':
+            case 'DOOR':
+                return [
+                    'sensor_type'      => 'DOOR',
+                    'door_opened'      => filter_var($json['door_opened'] ?? $json['door'] ?? $json['door_open'] ?? false, FILTER_VALIDATE_BOOLEAN),
+                    'access_method'    => $json['access_method'] ?? 'unknown',
+                    'user_id_card'     => $json['user_id_card'] ?? null,
+                    'duration_seconds' => (int) ($json['duration_seconds'] ?? 0),
+                    'door_location'    => $json['door_location'] ?? 'main_entrance',
+                ];
+
+            case 'VIBRATION':
+                $x = (float) ($json['x_axis'] ?? $json['x'] ?? 0);
+                $y = (float) ($json['y_axis'] ?? $json['y'] ?? 0);
+                $z = (float) ($json['z_axis'] ?? $json['z'] ?? 0);
+                return [
+                    'sensor_type' => 'VIBRATION',
+                    'x_axis'      => $x,
+                    'y_axis'      => $y,
+                    'z_axis'      => $z,
+                    'threshold'   => (float) ($json['threshold'] ?? 2.0),
+                ];
+
+            case 'HEARTBEAT':
+                return [
+                    'message_type'    => 'heartbeat',
+                    'battery_level'   => $json['battery_level'] ?? null,
+                    'signal_strength' => $json['signal_strength'] ?? null,
+                    'uptime_seconds'  => $json['uptime'] ?? null,
+                    'timestamp'       => now()->toISOString(),
+                ];
+
+            default:
+                return array_merge(['sensor_type' => $type], $json);
         }
     }
 
