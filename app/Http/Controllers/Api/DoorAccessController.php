@@ -35,7 +35,7 @@ class DoorAccessController extends Controller
                 'access_method' => 'nullable|string|in:keycard,manual,force,emergency,maintenance,unknown',
                 'user_id_card' => 'nullable|string|max:50',
                 'duration_seconds' => 'nullable|integer|min:0',
-                'door_location' => 'nullable|string|in:front_door,back_door,side_door,main_entrance',
+                'door_location' => 'nullable|string|in:front_door,back_door,side_door,main_entrance,rack',
                 'is_forced_entry' => 'nullable|boolean',
                 'door_opened_at' => 'nullable|date',
                 'door_closed_at' => 'nullable|date',

@@ -131,11 +131,8 @@ Route::middleware(['auth'])->group(function () {
         $vibAktif  = \App\Models\VibrationReading::where('recorded_at', '>=', now()->subSeconds(30))
                         ->where('is_abnormal', true)->exists();
         // Reed Switch: cek DoorAccessReading (data dari ESP32 via /api/door-access/data)
-        // DAN ReedSwitchReading (data dari endpoint /api/door-access/data lama)
         $reedAktif = \App\Models\DoorAccessReading::where('recorded_at', '>=', now()->subSeconds(30))
-                        ->where('door_opened', true)->exists()
-                     || \App\Models\ReedSwitchReading::where('recorded_at', '>=', now()->subSeconds(30))
-                        ->where('door_open', true)->exists();
+                        ->where('door_opened', true)->exists();
 
         // Status device online — berdasarkan last_seen dalam 2 menit terakhir
         $device        = \App\Models\Device::orderBy('last_seen', 'desc')->first();
@@ -154,11 +151,8 @@ Route::middleware(['auth'])->group(function () {
                             ->orderBy('recorded_at', 'desc')->first();
         $vibrationLatest = \App\Models\VibrationReading::with('device')
                             ->orderBy('recorded_at', 'desc')->first();
-        // Reed Switch: ambil dari DoorAccessReading (data ESP32 terbaru)
-        // fallback ke ReedSwitchReading jika tidak ada
+        // Reed Switch: data dari ESP32 disimpan di DoorAccessReading via /api/door-access/data
         $reedLatest      = \App\Models\DoorAccessReading::with('device')
-                            ->orderBy('recorded_at', 'desc')->first()
-                           ?? \App\Models\ReedSwitchReading::with('device')
                             ->orderBy('recorded_at', 'desc')->first();
 
         // Ambil data sensor dari tabel sensors untuk info nama & status
@@ -172,9 +166,7 @@ Route::middleware(['auth'])->group(function () {
         $vibrationCount24h  = \App\Models\VibrationReading::where('recorded_at', '>=', now()->subHours(24))
                                 ->where('is_abnormal', true)->count();
         $reedCount24h       = \App\Models\DoorAccessReading::where('recorded_at', '>=', now()->subHours(24))
-                                ->where('door_opened', true)->count()
-                              + \App\Models\ReedSwitchReading::where('recorded_at', '>=', now()->subHours(24))
-                                ->where('door_open', true)->count();
+                                ->where('door_opened', true)->count();
 
         // Riwayat 5 data terakhir tiap sensor
         $pirHistory         = \App\Models\PirReading::orderBy('recorded_at', 'desc')->limit(5)->get();

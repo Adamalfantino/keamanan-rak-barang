@@ -278,18 +278,19 @@ Magnitude: <span class="font-semibold text-gray-700">{{ number_format($vibration
 @endif
 </div>
 @if($reedLatest)
+@php $reedOpen = $reedLatest->door_opened ?? $reedLatest->door_open ?? false; @endphp
 <div class="mb-3 md:mb-4">
-<p id="reed-status-text" class="text-xl md:text-3xl font-display font-bold {{ $reedLatest->door_open ? 'text-red-600' : 'text-green-600' }} mb-1">
-{{ $reedLatest->door_open ? '⚠ Terbuka' : '✓ Tertutup' }}
+<p id="reed-status-text" class="text-xl md:text-3xl font-display font-bold {{ $reedOpen ? 'text-red-600' : 'text-green-600' }} mb-1">
+{{ $reedOpen ? '⚠ Terbuka' : '✓ Tertutup' }}
 </p>
 <p class="text-gray-500 text-xs md:text-sm">
-Level: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_level ?? '-') }}</span>
-· Durasi: <span class="font-semibold text-gray-700">{{ $reedLatest->open_duration_seconds ?? 0 }}s</span>
+Tipe: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_type ?? $reedLatest->access_level ?? 'manual') }}</span>
+· Durasi: <span class="font-semibold text-gray-700">{{ $reedLatest->duration_seconds ?? $reedLatest->open_duration_seconds ?? 0 }}s</span>
 </p>
 </div>
 <div class="pt-3 border-t border-gray-100 flex justify-between text-xs md:text-sm">
 <span class="text-gray-500">Update:</span>
-<span id="reed-update" class="{{ $reedLatest->door_open ? 'text-red-600' : 'text-green-600' }} font-semibold">{{ $reedLatest->recorded_at->diffForHumans() }}</span>
+<span id="reed-update" class="{{ $reedOpen ? 'text-red-600' : 'text-green-600' }} font-semibold">{{ $reedLatest->recorded_at->diffForHumans() }}</span>
 </div>
 @else
 <p class="text-lg md:text-2xl font-display font-bold text-gray-400 mb-2">Belum Ada Data</p>
@@ -364,14 +365,15 @@ Level: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_
 </div>
 <div class="space-y-3">
 @forelse($reedHistory as $reed)
-<div class="flex items-center justify-between p-3 rounded-xl {{ $reed->door_open ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100' }}">
+@php $reedOpen = $reed->door_opened ?? $reed->door_open ?? false; @endphp
+<div class="flex items-center justify-between p-3 rounded-xl {{ $reedOpen ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100' }}">
 <div>
-<p class="text-sm font-semibold {{ $reed->door_open ? 'text-red-700' : 'text-gray-700' }}">
-{{ $reed->door_open ? 'Terbuka' : 'Tertutup' }} — {{ ucfirst($reed->access_level ?? 'normal') }}
+<p class="text-sm font-semibold {{ $reedOpen ? 'text-red-700' : 'text-gray-700' }}">
+{{ $reedOpen ? 'Terbuka' : 'Tertutup' }} — {{ ucfirst($reed->access_type ?? $reed->access_level ?? 'manual') }}
 </p>
 <p class="text-xs text-gray-400">{{ $reed->recorded_at->format('d M H:i:s') }}</p>
 </div>
-<div class="w-2 h-2 rounded-full {{ $reed->door_open ? 'bg-red-500' : 'bg-green-500' }}"></div>
+<div class="w-2 h-2 rounded-full {{ $reedOpen ? 'bg-red-500' : 'bg-green-500' }}"></div>
 </div>
 @empty
 <p class="text-gray-400 text-sm text-center py-4">Belum ada data</p>
@@ -495,7 +497,7 @@ async function pollSensorData() {
     if (reedRes?.success && reedRes.data?.length > 0) {
       const d = reedRes.data[0];
       const age = (now - new Date(d.recorded_at).getTime()) / 1000;
-      const active = d.door_open && age <= DETECTION_WINDOW;
+      const active = (d.door_opened ?? d.door_open ?? false) && age <= DETECTION_WINDOW;
       document.getElementById('reed-status-text').textContent = active ? '⚠ Terbuka' : '✓ Tertutup';
       document.getElementById('reed-status-text').className = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
       document.getElementById('reed-update').textContent = 'Baru saja';
