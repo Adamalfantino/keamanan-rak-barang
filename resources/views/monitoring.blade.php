@@ -312,7 +312,7 @@ Tipe: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_t
 </div>
 <h4 class="font-display font-bold text-gray-800 text-sm sm:text-base">Riwayat PIR</h4>
 </div>
-<div class="space-y-3">
+<div id="pir-history" class="space-y-3">
 @forelse($pirHistory as $pir)
 <div class="flex items-center justify-between p-3 rounded-xl {{ $pir->motion_detected ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100' }}">
 <div>
@@ -338,7 +338,7 @@ Tipe: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_t
 </div>
 <h4 class="font-display font-bold text-gray-800 text-sm sm:text-base">Riwayat Getaran</h4>
 </div>
-<div class="space-y-3">
+<div id="vib-history" class="space-y-3">
 @forelse($vibrationHistory as $vib)
 <div class="flex items-center justify-between p-3 rounded-xl {{ $vib->is_abnormal ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100' }}">
 <div>
@@ -363,7 +363,7 @@ Tipe: <span class="font-semibold text-gray-700">{{ ucfirst($reedLatest->access_t
 </div>
 <h4 class="font-display font-bold text-gray-800 text-sm sm:text-base">Riwayat Reed Switch</h4>
 </div>
-<div class="space-y-3">
+<div id="reed-history" class="space-y-3">
 @forelse($reedHistory as $reed)
 @php $reedOpen = $reed->door_opened ?? $reed->door_open ?? false; @endphp
 <div class="flex items-center justify-between p-3 rounded-xl {{ $reedOpen ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100' }}">
@@ -456,52 +456,146 @@ function toggleSidebar() {
 }
 
 // =============================================
-// POLLING REALTIME — update kartu sensor tanpa reload halaman
+// HELPER — format tanggal ke "dd Mon HH:mm:ss"
+// =============================================
+function formatDate(iso) {
+  const d = new Date(iso);
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const mon  = months[d.getMonth()];
+  const hh   = String(d.getHours()).padStart(2, '0');
+  const mm   = String(d.getMinutes()).padStart(2, '0');
+  const ss   = String(d.getSeconds()).padStart(2, '0');
+  return `${dd} ${mon} ${hh}:${mm}:${ss}`;
+}
+
+// =============================================
+// RENDER RIWAYAT
+// =============================================
+function renderPirHistory(data) {
+  const el = document.getElementById('pir-history');
+  if (!el) return;
+  if (!data || data.length === 0) {
+    el.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Belum ada data</p>';
+    return;
+  }
+  el.innerHTML = data.map(d => {
+    const active = d.motion_detected;
+    const bg     = active ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100';
+    const txt    = active ? 'text-red-700' : 'text-gray-700';
+    const dot    = active ? 'bg-red-500' : 'bg-green-500';
+    const label  = active ? `Gerakan — ${d.motion_intensity ?? 0}%` : 'Aman';
+    return `
+      <div class="flex items-center justify-between p-3 rounded-xl ${bg}">
+        <div>
+          <p class="text-sm font-semibold ${txt}">${label}</p>
+          <p class="text-xs text-gray-400">${formatDate(d.recorded_at)}</p>
+        </div>
+        <div class="w-2 h-2 rounded-full ${dot}"></div>
+      </div>`;
+  }).join('');
+}
+
+function renderVibHistory(data) {
+  const el = document.getElementById('vib-history');
+  if (!el) return;
+  if (!data || data.length === 0) {
+    el.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Belum ada data</p>';
+    return;
+  }
+  el.innerHTML = data.map(d => {
+    const active = d.is_abnormal;
+    const bg     = active ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100';
+    const txt    = active ? 'text-red-700' : 'text-gray-700';
+    const dot    = active ? 'bg-red-500' : 'bg-green-500';
+    const mag    = parseFloat(d.magnitude ?? 0).toFixed(2);
+    const status = (d.status ?? 'normal').charAt(0).toUpperCase() + (d.status ?? 'normal').slice(1);
+    return `
+      <div class="flex items-center justify-between p-3 rounded-xl ${bg}">
+        <div>
+          <p class="text-sm font-semibold ${txt}">${status} — ${mag}</p>
+          <p class="text-xs text-gray-400">${formatDate(d.recorded_at)}</p>
+        </div>
+        <div class="w-2 h-2 rounded-full ${dot}"></div>
+      </div>`;
+  }).join('');
+}
+
+function renderReedHistory(data) {
+  const el = document.getElementById('reed-history');
+  if (!el) return;
+  if (!data || data.length === 0) {
+    el.innerHTML = '<p class="text-gray-400 text-sm text-center py-4">Belum ada data</p>';
+    return;
+  }
+  el.innerHTML = data.map(d => {
+    const open   = d.door_opened ?? d.door_open ?? false;
+    const bg     = open ? 'bg-red-50 border border-red-100' : 'bg-gray-50 border border-gray-100';
+    const txt    = open ? 'text-red-700' : 'text-gray-700';
+    const dot    = open ? 'bg-red-500' : 'bg-green-500';
+    const type   = d.access_type ?? d.access_level ?? 'manual';
+    const label  = (open ? 'Terbuka' : 'Tertutup') + ' — ' + type.charAt(0).toUpperCase() + type.slice(1);
+    return `
+      <div class="flex items-center justify-between p-3 rounded-xl ${bg}">
+        <div>
+          <p class="text-sm font-semibold ${txt}">${label}</p>
+          <p class="text-xs text-gray-400">${formatDate(d.recorded_at)}</p>
+        </div>
+        <div class="w-2 h-2 rounded-full ${dot}"></div>
+      </div>`;
+  }).join('');
+}
+
+// =============================================
+// POLLING REALTIME — update kartu + riwayat
 // =============================================
 const DETECTION_WINDOW = 30; // detik
 
 async function pollSensorData() {
   try {
     const [pirRes, vibRes, reedRes] = await Promise.all([
-      fetch('/api/pir/readings?limit=1').then(r => r.json()).catch(() => null),
-      fetch('/api/vibration/readings?limit=1').then(r => r.json()).catch(() => null),
-      fetch('/api/door-access/readings?limit=1').then(r => r.json()).catch(() => null),
+      fetch('/api/pir/readings?limit=5').then(r => r.json()).catch(() => null),
+      fetch('/api/vibration/readings?limit=5').then(r => r.json()).catch(() => null),
+      fetch('/api/door-access/readings?limit=5').then(r => r.json()).catch(() => null),
     ]);
 
     const now = Date.now();
 
-    // PIR
+    // ---- PIR ----
     if (pirRes?.success && pirRes.data?.length > 0) {
-      const d = pirRes.data[0];
-      const age = (now - new Date(d.recorded_at).getTime()) / 1000;
+      const d    = pirRes.data[0];
+      const age  = (now - new Date(d.recorded_at).getTime()) / 1000;
       const active = d.motion_detected && age <= DETECTION_WINDOW;
       document.getElementById('pir-status-text').textContent = active ? '⚠ Gerakan' : '✓ Aman';
-      document.getElementById('pir-status-text').className = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
-      document.getElementById('pir-detail').textContent = 'Intensitas: ' + (d.motion_intensity ?? 0) + '% · Durasi: ' + (d.duration_seconds ?? 0) + 's';
-      document.getElementById('pir-update').textContent = 'Baru saja';
-      document.getElementById('pir-update').className = active ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold';
+      document.getElementById('pir-status-text').className   = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
+      document.getElementById('pir-detail').textContent      = 'Intensitas: ' + (d.motion_intensity ?? 0) + '% · Durasi: ' + (d.duration_seconds ?? 0) + 's';
+      document.getElementById('pir-update').textContent      = 'Baru saja';
+      document.getElementById('pir-update').className        = active ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold';
+      renderPirHistory(pirRes.data);
     }
 
-    // Vibration
+    // ---- Vibration ----
     if (vibRes?.success && vibRes.data?.length > 0) {
-      const d = vibRes.data[0];
-      const age = (now - new Date(d.recorded_at).getTime()) / 1000;
+      const d    = vibRes.data[0];
+      const age  = (now - new Date(d.recorded_at).getTime()) / 1000;
       const active = d.is_abnormal && age <= DETECTION_WINDOW;
       document.getElementById('vib-status-text').textContent = active ? '⚠ Abnormal' : '✓ Stabil';
-      document.getElementById('vib-status-text').className = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
-      document.getElementById('vib-update').textContent = 'Baru saja';
-      document.getElementById('vib-update').className = active ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold';
+      document.getElementById('vib-status-text').className   = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
+      document.getElementById('vib-update').textContent      = 'Baru saja';
+      document.getElementById('vib-update').className        = active ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold';
+      renderVibHistory(vibRes.data);
     }
 
-    // Reed Switch
+    // ---- Reed Switch ----
     if (reedRes?.success && reedRes.data?.length > 0) {
-      const d = reedRes.data[0];
-      const age = (now - new Date(d.recorded_at).getTime()) / 1000;
+      const d    = reedRes.data[0];
+      const age  = (now - new Date(d.recorded_at).getTime()) / 1000;
       const active = (d.door_opened ?? d.door_open ?? false) && age <= DETECTION_WINDOW;
       document.getElementById('reed-status-text').textContent = active ? '⚠ Terbuka' : '✓ Tertutup';
-      document.getElementById('reed-status-text').className = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
-      document.getElementById('reed-update').textContent = 'Baru saja';
-      document.getElementById('reed-update').className = active ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold';
+      document.getElementById('reed-status-text').className   = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');
+      document.getElementById('reed-update').textContent      = 'Baru saja';
+      document.getElementById('reed-update').className        = active ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold';
+      renderReedHistory(reedRes.data);
     }
 
     // Update dot indicator
@@ -517,7 +611,8 @@ async function pollSensorData() {
   }
 }
 
-// Poll setiap 10 detik
+// Poll pertama langsung saat halaman load, lalu setiap 10 detik
+pollSensorData();
 setInterval(pollSensorData, 10000);
 </script>
 
