@@ -43,6 +43,8 @@
 // ============================================
 #define HEARTBEAT_INTERVAL   30000
 #define SENSOR_READ_INTERVAL 50
+#define PIR_DEBOUNCE         500    // ms — jeda minimum antar perubahan state
+#define PIR_COOLDOWN         10000  // ms — jeda minimum antar 2 deteksi berturut-turut
 
 // ============================================
 // VIBRATION
@@ -77,8 +79,9 @@ void buzzerVib() {
 // PIR STATE
 // ============================================
 bool pirStableState = false;
-unsigned long pirLastChange = 0;
-unsigned long pirTriggerTime = 0;
+unsigned long pirLastChange   = 0;
+unsigned long pirTriggerTime  = 0;
+unsigned long pirLastDetect   = 0;  // waktu terakhir kirim DETECTED
 
 // ============================================
 // REED STATE
@@ -186,8 +189,9 @@ void setup() {
   LoRa.setSyncWord(LORA_SYNC_WORD);
   Serial.println("[3] LoRa READY");
 
-  // PIR stabilization
-  delay(5000);
+  // PIR stabilization — tunggu 30 detik agar sensor warm-up
+  Serial.println("[PIR] Stabilizing 30s...");
+  delay(30000);
   for (int i = 0; i < 3; i++) {
     blinkLED(100);
     delay(100);
@@ -223,18 +227,25 @@ void loop() {
 void readPIR(unsigned long now) {
   bool current = digitalRead(PIN_PIR);
 
-  if (current != pirStableState && now - pirLastChange > 200) {
+  // Debounce — abaikan perubahan dalam 500ms terakhir
+  if (current != pirStableState && now - pirLastChange > PIR_DEBOUNCE) {
     pirLastChange  = now;
     pirStableState = current;
 
     if (pirStableState) {
+      // Cooldown — jangan trigger lagi dalam 10 detik setelah deteksi terakhir
+      if (now - pirLastDetect < PIR_COOLDOWN) {
+        Serial.println("[PIR] Cooldown aktif, skip");
+        return;
+      }
       pirTriggerTime = now;
+      pirLastDetect  = now;
       Serial.println("[PIR] DETECTED");
-      buzzerPIR();                          // bunyi langsung
+      buzzerPIR();
       sendPIRData(true, 75, 0, "center");
     } else {
       int duration = (now - pirTriggerTime) / 1000;
-      Serial.println("[PIR] END");
+      Serial.println("[PIR] END — durasi: " + String(duration) + "s");
       sendPIRData(false, 0, duration, "center");
     }
   }

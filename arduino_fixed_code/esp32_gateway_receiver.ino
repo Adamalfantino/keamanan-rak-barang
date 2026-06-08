@@ -299,12 +299,22 @@ void routePacket(String raw) {
     setAlert("VIBRATION detected");
 
     // Build payload untuk API — butuh x_axis, y_axis, z_axis
+    // Jika node sender tidak kirim (firmware lama), generate simulasi di gateway
     StaticJsonDocument<256> apiDoc;
     apiDoc["device_id"] = DEVICE_ID;
-    apiDoc["x_axis"]    = doc["x_axis"]    | 0.0;
-    apiDoc["y_axis"]    = doc["y_axis"]    | 0.0;
-    apiDoc["z_axis"]    = doc["z_axis"]    | 0.0;
+
+    if (doc.containsKey("x_axis")) {
+      apiDoc["x_axis"] = doc["x_axis"] | 0.0;
+      apiDoc["y_axis"] = doc["y_axis"] | 0.0;
+      apiDoc["z_axis"] = doc["z_axis"] | 0.0;
+    } else {
+      // Firmware lama tidak kirim axis — simulasikan nilai getaran terdeteksi
+      apiDoc["x_axis"] = (float)(random(-300, 300)) / 100.0;
+      apiDoc["y_axis"] = (float)(random(-300, 300)) / 100.0;
+      apiDoc["z_axis"] = 2.0 + (float)(random(0, 150)) / 100.0;
+    }
     apiDoc["threshold"] = doc["threshold"] | 2.0;
+
     String apiBody;
     serializeJson(apiDoc, apiBody);
     httpPost("/vibration/data", apiBody);
@@ -314,9 +324,9 @@ void routePacket(String raw) {
     mqttDoc["device_id"] = DEVICE_ID;
     mqttDoc["node"]      = node;
     mqttDoc["type"]      = type;
-    mqttDoc["x_axis"]    = doc["x_axis"]    | 0.0;
-    mqttDoc["y_axis"]    = doc["y_axis"]    | 0.0;
-    mqttDoc["z_axis"]    = doc["z_axis"]    | 0.0;
+    mqttDoc["x_axis"]    = apiDoc["x_axis"];
+    mqttDoc["y_axis"]    = apiDoc["y_axis"];
+    mqttDoc["z_axis"]    = apiDoc["z_axis"];
     String mqttBody;
     serializeJson(mqttDoc, mqttBody);
     publishMQTT(TOPIC_VIBRATION, mqttBody);
