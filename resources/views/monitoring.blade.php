@@ -149,7 +149,7 @@
 </div>
 <div>
 <p class="text-gray-500 text-xs md:text-sm">Gerakan (24 jam)</p>
-<p class="text-2xl md:text-3xl font-display font-bold text-indigo-600">{{ $pirCount24h }}</p>
+<p id="stat-pir" class="text-2xl md:text-3xl font-display font-bold text-indigo-600">{{ $pirCount24h }}</p>
 </div>
 </div>
 <div class="bg-white rounded-2xl shadow p-4 md:p-6 border border-gray-100 flex items-center gap-3 md:gap-4">
@@ -158,7 +158,7 @@
 </div>
 <div>
 <p class="text-gray-500 text-xs md:text-sm">Getaran (24 jam)</p>
-<p class="text-2xl md:text-3xl font-display font-bold text-yellow-600">{{ $vibrationCount24h }}</p>
+<p id="stat-vib" class="text-2xl md:text-3xl font-display font-bold text-yellow-600">{{ $vibrationCount24h }}</p>
 </div>
 </div>
 <div class="bg-white rounded-2xl shadow p-4 md:p-6 border border-gray-100 flex items-center gap-3 md:gap-4">
@@ -167,7 +167,7 @@
 </div>
 <div>
 <p class="text-gray-500 text-xs md:text-sm">Rak Dibuka (24 jam)</p>
-<p class="text-2xl md:text-3xl font-display font-bold text-purple-600">{{ $reedCount24h }}</p>
+<p id="stat-reed" class="text-2xl md:text-3xl font-display font-bold text-purple-600">{{ $reedCount24h }}</p>
 </div>
 </div>
 </div>
@@ -578,20 +578,31 @@ let lastReedId = 0;
 // =============================================
 async function pollSensorData() {
   try {
-    const [pirRes, vibRes, reedRes] = await Promise.all([
+    const [pirRes, vibRes, reedRes, pirStat24, vibStat24, reedStat24] = await Promise.all([
       fetch('/api/pir/readings?limit=5').then(r => r.json()).catch(() => null),
       fetch('/api/vibration/readings?limit=5').then(r => r.json()).catch(() => null),
       fetch('/api/door-access/readings?limit=5').then(r => r.json()).catch(() => null),
+      fetch('/api/pir/statistics?hours=24').then(r => r.json()).catch(() => null),
+      fetch('/api/vibration/statistics?hours=24').then(r => r.json()).catch(() => null),
+      fetch('/api/door-access/statistics?hours=24').then(r => r.json()).catch(() => null),
     ]);
 
     const now = Date.now();
+
+    // ---- Update statistik 24 jam ----
+    const pirStatEl  = document.getElementById('stat-pir');
+    const vibStatEl  = document.getElementById('stat-vib');
+    const reedStatEl = document.getElementById('stat-reed');
+    if (pirStatEl  && pirStat24?.success)  pirStatEl.textContent  = pirStat24.data?.motion_detected_count ?? pirStatEl.textContent;
+    if (vibStatEl  && vibStat24?.success)  vibStatEl.textContent  = vibStat24.data?.warning_count + (vibStat24.data?.critical_count ?? 0) ?? vibStatEl.textContent;
+    if (reedStatEl && reedStat24?.success) reedStatEl.textContent = reedStat24.data?.door_opened_count ?? reedStatEl.textContent;
 
     // ---- PIR ----
     if (pirRes?.success && pirRes.data?.length > 0) {
       const d      = pirRes.data[0];
       const isNew  = d.id > lastPirId;
       const age    = (now - new Date(d.recorded_at).getTime()) / 1000;
-      const active = d.motion_detected && age <= 30;
+      const active = d.motion_detected && age <= 60;
 
       document.getElementById('pir-status-text').textContent = active ? '⚠ Gerakan' : '✓ Aman';
       document.getElementById('pir-status-text').className   = 'text-xl md:text-3xl font-display font-bold mb-1 ' + (active ? 'text-red-600' : 'text-green-600');

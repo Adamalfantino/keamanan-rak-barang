@@ -686,22 +686,8 @@ function toggleSidebar() {
   }
 }
 
-// Auto refresh halaman setiap 30 detik untuk update alert
-setTimeout(function() {
-    window.location.reload();
-}, 30000);
-</script>
-
-<script>
-// =============================================
-// BUZZER & LED REALTIME POLLING
-// =============================================
-
-let alertDismissed = false;
-let pollingInterval = null;
-
 // Threshold waktu deteksi dianggap "aktif" (dalam detik)
-const DETECTION_WINDOW = 30;
+const DETECTION_WINDOW = 60;
 
 async function fetchSensorStatus() {
   try {
