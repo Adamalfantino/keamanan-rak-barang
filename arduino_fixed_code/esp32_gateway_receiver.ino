@@ -1,42 +1,66 @@
-/**
- * ============================================
- * Smart Rack Security System
- * ESP32 GATEWAY (RECEIVER) — Di luar rak
- * 
- * Fungsi  : Terima data LoRa dari Node, forward ke Railway API
- * Komunikasi : LoRa SX1278 (RX) + WiFi (HTTPS ke Railway)
- * TIDAK ada sensor di sini
- * ============================================
- */
-
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <SPI.h>
 #include <LoRa.h>
+#include <PubSubClient.h>
 
 // ============================================
-// KONFIGURASI — SESUAIKAN
+// API (Railway)
 // ============================================
-const char* WIFI_SSID     = "gege";
-const char* WIFI_PASSWORD = "biasaaja";
-const char* API_BASE      = "https://keamanan-rak-barang-production.up.railway.app/api";
-const int   DEVICE_ID     = 1;   // ID device di database Railway
+const char* API_BASE  = "https://keamanan-rak-barang-production.up.railway.app/api";
+const int   DEVICE_ID = 1;
 
 // ============================================
-// PIN LORA SX1278 RA-02
+// WIFI
 // ============================================
-#define LORA_SS      27
-#define LORA_RST     14
-#define LORA_DIO0    26
-#define LORA_FREQ    433E6   // Harus sama dengan Node Sender!
+const char* WIFI_SSID = "ini";
+const char* WIFI_PASS = "00000000";
 
 // ============================================
-// PIN LED STATUS GATEWAY (opsional)
+// MQTT HiveMQ
 // ============================================
-#define LED_WIFI     2    // LED bawaan ESP32 — nyala = WiFi OK
-#define LED_LORA     4    // Kedip = terima paket LoRa
+const char* MQTT_SERVER     = "broker.hivemq.com";
+const int   MQTT_PORT       = 1883;
+const char* TOPIC_PIR       = "keamanan/pir";
+const char* TOPIC_REED      = "keamanan/reed";
+const char* TOPIC_VIBRATION = "keamanan/vibration";
+const char* TOPIC_STATUS    = "keamanan/status";
+const char* TOPIC_TEST      = "keamanan/test";
+
+WiFiClient   espClient;
+PubSubClient mqtt(espClient);
+
+// ============================================
+// LORA CONFIG
+// ============================================
+#define LORA_SS        27
+#define LORA_RST       14
+#define LORA_DIO0      26
+#define LORA_FREQ      433E6
+#define LORA_SYNC_WORD 0xA5
+#define LORA_SF        9
+#define LORA_BW        125E3
+#define LORA_CR        5
+
+#define EXPECTED_NODE    "NODE_001"
+#define EXPECTED_GATEWAY "GATEWAY_001"
+
+// ============================================
+// LED
+// ============================================
+#define LED_WIFI  2
+#define LED_LORA  4
+#define LED_HIJAU 33
+#define LED_MERAH 25
+
+// ============================================
+// ALERT SYSTEM
+// ============================================
+#define ALERT_HOLD 3000
+bool alertActive = false;
+unsigned long alertStartTime = 0;
 
 // ============================================
 // STATISTIK
@@ -47,226 +71,300 @@ unsigned long totalFailed   = 0;
 unsigned long lastStatusPrint = 0;
 
 // ============================================
-// SETUP WIFI
+// BLINK LORA LED
+// ============================================
+void blinkLoRa() {
+  digitalWrite(LED_LORA, HIGH);
+  delay(50);
+  digitalWrite(LED_LORA, LOW);
+}
+
+// ============================================
+// WIFI CONNECT
 // ============================================
 void setupWifi() {
-  Serial.println("[WiFi] Menghubungkan ke: " + String(WIFI_SSID));
+  Serial.println("\n[WiFi] Connecting...");
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-  int attempt = 0;
-  while (WiFi.status() != WL_CONNECTED && attempt < 40) {
+  int retry = 0;
+  while (WiFi.status() != WL_CONNECTED && retry < 40) {
     delay(500);
     Serial.print(".");
-    attempt++;
+    retry++;
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n[WiFi] ✓ Terhubung! IP: " + WiFi.localIP().toString());
+    Serial.println("\n[WiFi] CONNECTED  IP: " + WiFi.localIP().toString());
     digitalWrite(LED_WIFI, HIGH);
   } else {
-    Serial.println("\n[WiFi] ✗ Gagal. Cek SSID/Password atau pastikan 2.4GHz.");
-    digitalWrite(LED_WIFI, LOW);
+    Serial.println("\n[WiFi] FAILED — restart");
+    ESP.restart();
   }
 }
 
+// ============================================
+// WIFI AUTO RECONNECT
+// ============================================
 void checkWifi() {
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("[WiFi] Putus, reconnecting...");
-    digitalWrite(LED_WIFI, LOW);
-    WiFi.disconnect();
-    delay(1000);
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+  if (WiFi.status() == WL_CONNECTED) return;
+  Serial.println("[WiFi] Reconnecting...");
+  digitalWrite(LED_WIFI, LOW);
+  WiFi.disconnect();
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
 
-    int attempt = 0;
-    while (WiFi.status() != WL_CONNECTED && attempt < 20) {
-      delay(500);
-      Serial.print(".");
-      attempt++;
-    }
+  int retry = 0;
+  while (WiFi.status() != WL_CONNECTED && retry < 20) {
+    delay(500);
+    Serial.print(".");
+    retry++;
+  }
 
-    if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("\n[WiFi] ✓ Terhubung kembali!");
-      digitalWrite(LED_WIFI, HIGH);
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n[WiFi] RECONNECTED");
+    digitalWrite(LED_WIFI, HIGH);
+  } else {
+    Serial.println("\n[WiFi] FAILED RECONNECT");
+  }
+}
+
+// ============================================
+// MQTT CONNECT
+// ============================================
+void connectMQTT() {
+  mqtt.setServer(MQTT_SERVER, MQTT_PORT);
+  while (!mqtt.connected()) {
+    String clientId = "ESP32-GW-" + String(random(0xffff), HEX);
+    Serial.println("[MQTT] Connecting...");
+    if (mqtt.connect(clientId.c_str())) {
+      Serial.println("[MQTT] CONNECTED");
     } else {
-      Serial.println("\n[WiFi] ✗ Gagal reconnect.");
+      Serial.print("[MQTT] FAILED rc=");
+      Serial.println(mqtt.state());
+      delay(2000);
     }
   }
 }
 
 // ============================================
-// HTTP POST KE RAILWAY API
+// MQTT PUBLISH
 // ============================================
-bool httpPost(String endpoint, String jsonBody) {
+void publishMQTT(const char* topic, String payload) {
+  if (!mqtt.connected()) return;
+  mqtt.publish(topic, payload.c_str());
+  Serial.println("[MQTT] SENT -> " + String(topic));
+}
+
+// ============================================
+// HTTP POST
+// ============================================
+bool httpPost(String endpoint, String body) {
   if (WiFi.status() != WL_CONNECTED) {
     Serial.println("[HTTP] Skip — WiFi tidak terhubung");
     return false;
   }
 
   WiFiClientSecure client;
-  client.setInsecure(); // Skip SSL verify — cukup untuk Railway
+  client.setInsecure();
 
   HTTPClient http;
   String url = String(API_BASE) + endpoint;
-
+  Serial.println("[HTTP] POST -> " + url);
   http.begin(client, url);
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Accept", "application/json");
   http.setTimeout(10000);
 
-  int httpCode = http.POST(jsonBody);
+  int code = http.POST(body);
+  Serial.print("[HTTP] CODE: ");
+  Serial.println(code);
 
-  if (httpCode > 0) {
-    if (httpCode == 200 || httpCode == 201) {
-      Serial.println("[HTTP] ✓ " + endpoint + " → " + String(httpCode));
-      http.end();
-      totalSent++;
-      return true;
-    } else {
-      String resp = http.getString();
-      Serial.println("[HTTP] ✗ " + endpoint + " → " + String(httpCode));
-      Serial.println("       " + resp.substring(0, 120));
-    }
-  } else {
-    Serial.println("[HTTP] ✗ Error: " + String(httpCode) + " — " + endpoint);
+  if (code != 200 && code != 201) {
+    String resp = http.getString();
+    Serial.println("[HTTP] RESP: " + resp.substring(0, 150));
   }
 
   http.end();
+
+  if (code == 200 || code == 201) {
+    totalSent++;
+    return true;
+  }
   totalFailed++;
   return false;
 }
 
 // ============================================
-// PROSES PAKET PIR
+// ALERT
 // ============================================
-void prosesPIR(String nodeId, String jsonStr) {
-  StaticJsonDocument<256> src;
-  if (deserializeJson(src, jsonStr) != DeserializationError::Ok) {
-    Serial.println("[PIR] JSON parse error");
-    return;
-  }
-
-  StaticJsonDocument<256> doc;
-  doc["device_id"]        = DEVICE_ID;
-  doc["motion_detected"]  = src["motion_detected"]  | false;
-  doc["motion_intensity"] = src["motion_intensity"]  | 50;
-  doc["duration_seconds"] = src["duration_seconds"]  | 0;
-  doc["detection_zone"]   = src["detection_zone"]    | "center";
-
-  String body;
-  serializeJson(doc, body);
-  Serial.println("[PIR] Node=" + nodeId + " → forward ke API");
-  httpPost("/pir/data", body);
+void setAlert(String msg) {
+  digitalWrite(LED_MERAH, HIGH);
+  digitalWrite(LED_HIJAU, LOW);
+  alertActive    = true;
+  alertStartTime = millis();
+  Serial.println("[ALERT] " + msg);
 }
 
 // ============================================
-// PROSES PAKET REED SWITCH
+// ROUTER CORE
+// Terima JSON mentah dari node sender, parse,
+// lalu kirim ke API dengan format yang benar.
 // ============================================
-void prosesREED(String nodeId, String jsonStr) {
-  StaticJsonDocument<256> src;
-  if (deserializeJson(src, jsonStr) != DeserializationError::Ok) {
-    Serial.println("[REED] JSON parse error");
+void routePacket(String raw) {
+  StaticJsonDocument<512> doc;
+  DeserializationError err = deserializeJson(doc, raw);
+  if (err) {
+    Serial.println("[JSON] INVALID: " + String(err.c_str()));
     return;
   }
 
-  StaticJsonDocument<256> doc;
-  doc["device_id"]        = DEVICE_ID;
-  doc["door_opened"]      = src["door_opened"]      | false;
-  doc["duration_seconds"] = src["duration_seconds"] | 0;
-  doc["access_method"]    = src["access_method"]    | "manual";
-  doc["door_location"]    = src["door_location"]    | "rack";
-  doc["is_forced_entry"]  = src["is_forced_entry"]  | false;
+  String node    = doc["node_id"]    | "";
+  String gateway = doc["gateway_id"] | "";
+  String type    = doc["type"]       | "";
 
-  String body;
-  serializeJson(doc, body);
-  Serial.println("[REED] Node=" + nodeId + " → forward ke API");
-  httpPost("/door-access/data", body);
-}
-
-// ============================================
-// PROSES PAKET GETARAN SW420
-// ============================================
-void prosesVIBRATION(String nodeId, String jsonStr) {
-  StaticJsonDocument<256> src;
-  if (deserializeJson(src, jsonStr) != DeserializationError::Ok) {
-    Serial.println("[VIBRATION] JSON parse error");
+  // Filter node & gateway
+  if (node != EXPECTED_NODE) {
+    Serial.println("[FILTER] INVALID NODE: " + node);
+    return;
+  }
+  if (gateway != EXPECTED_GATEWAY) {
+    Serial.println("[FILTER] INVALID GATEWAY: " + gateway);
     return;
   }
 
-  StaticJsonDocument<256> doc;
-  doc["device_id"] = DEVICE_ID;
-  doc["x_axis"]    = src["x_axis"]    | 0.0;
-  doc["y_axis"]    = src["y_axis"]    | 0.0;
-  doc["z_axis"]    = src["z_axis"]    | 0.0;
-  doc["threshold"] = src["threshold"] | 2.0;
+  Serial.println("[ROUTE] type=" + type + " node=" + node);
+  checkWifi();
 
-  String body;
-  serializeJson(doc, body);
-  Serial.println("[VIBRATION] Node=" + nodeId + " → forward ke API");
-  httpPost("/vibration/data", body);
-}
+  // =========================================
+  // PIR
+  // =========================================
+  if (type == "PIR") {
+    setAlert("PIR detected");
 
-// ============================================
-// PROSES PAKET HEARTBEAT
-// ============================================
-void prosesHEARTBEAT(String nodeId, String jsonStr) {
-  StaticJsonDocument<128> src;
-  deserializeJson(src, jsonStr);
-  long uptime = src["uptime_s"] | 0;
-  Serial.println("[HEARTBEAT] Node=" + nodeId + " masih hidup, uptime=" + String(uptime) + "s");
+    // Build payload untuk API
+    StaticJsonDocument<256> apiDoc;
+    apiDoc["device_id"]        = DEVICE_ID;
+    apiDoc["motion_detected"]  = doc["motion_detected"]  | false;
+    apiDoc["motion_intensity"] = doc["motion_intensity"]  | 50;
+    apiDoc["duration_seconds"] = doc["duration_seconds"]  | 0;
+    apiDoc["detection_zone"]   = doc["detection_zone"]    | "center";
+    String apiBody;
+    serializeJson(apiDoc, apiBody);
+    httpPost("/pir/data", apiBody);
 
-  // Kirim heartbeat ke API agar device tetap Online di dashboard
-  StaticJsonDocument<128> doc;
-  doc["node_id"]    = nodeId;
-  doc["gateway_id"] = "GATEWAY_001";
-  doc["payload"]    = "HEARTBEAT|" + nodeId;
-
-  String body;
-  serializeJson(doc, body);
-  httpPost("/lora/receive", body);
-}
-
-// ============================================
-// PARSE & ROUTE PAKET LORA
-// Format paket: TYPE|NODE_ID|{json}
-// ============================================
-void prosesPacket(String packet, int rssi, float snr) {
-  totalReceived++;
-
-  // Kedip LED tanda terima paket
-  digitalWrite(LED_LORA, HIGH); delay(50); digitalWrite(LED_LORA, LOW);
-
-  Serial.println("─────────────────────────────────");
-  Serial.println("[LoRa RX] RSSI=" + String(rssi) + " SNR=" + String(snr, 1));
-  Serial.println("[LoRa RX] Raw: " + packet.substring(0, 100));
-
-  // Parse format: TYPE|NODE_ID|{json}
-  int sep1 = packet.indexOf('|');
-  if (sep1 < 0) {
-    Serial.println("[LoRa RX] Format tidak dikenal, skip.");
-    return;
+    // Build payload untuk MQTT
+    StaticJsonDocument<256> mqttDoc;
+    mqttDoc["device_id"] = DEVICE_ID;
+    mqttDoc["node"]      = node;
+    mqttDoc["type"]      = type;
+    mqttDoc["motion"]    = doc["motion_detected"] | false;
+    String mqttBody;
+    serializeJson(mqttDoc, mqttBody);
+    publishMQTT(TOPIC_PIR, mqttBody);
   }
 
-  int sep2 = packet.indexOf('|', sep1 + 1);
-  if (sep2 < 0) {
-    Serial.println("[LoRa RX] Format tidak lengkap, skip.");
-    return;
+  // =========================================
+  // REED
+  // =========================================
+  else if (type == "REED") {
+    setAlert("DOOR event");
+
+    // Build payload untuk API
+    StaticJsonDocument<256> apiDoc;
+    apiDoc["device_id"]        = DEVICE_ID;
+    apiDoc["door_opened"]      = doc["door_opened"]      | false;
+    apiDoc["duration_seconds"] = doc["duration_seconds"] | 0;
+    apiDoc["access_method"]    = doc["access_method"]    | "manual";
+    apiDoc["door_location"]    = doc["door_location"]    | "rack";
+    apiDoc["is_forced_entry"]  = doc["is_forced_entry"]  | false;
+    String apiBody;
+    serializeJson(apiDoc, apiBody);
+    httpPost("/door-access/data", apiBody);
+
+    // Build payload untuk MQTT
+    StaticJsonDocument<256> mqttDoc;
+    mqttDoc["device_id"] = DEVICE_ID;
+    mqttDoc["node"]      = node;
+    mqttDoc["type"]      = type;
+    mqttDoc["door"]      = doc["door_opened"] | false;
+    String mqttBody;
+    serializeJson(mqttDoc, mqttBody);
+    publishMQTT(TOPIC_REED, mqttBody);
   }
 
-  String type    = packet.substring(0, sep1);
-  String nodeId  = packet.substring(sep1 + 1, sep2);
-  String payload = packet.substring(sep2 + 1);
+  // =========================================
+  // VIBRATION
+  // =========================================
+  else if (type == "VIBRATION") {
+    setAlert("VIBRATION detected");
 
-  Serial.println("[LoRa RX] Type=" + type + " Node=" + nodeId);
+    // Build payload untuk API — butuh x_axis, y_axis, z_axis
+    StaticJsonDocument<256> apiDoc;
+    apiDoc["device_id"] = DEVICE_ID;
+    apiDoc["x_axis"]    = doc["x_axis"]    | 0.0;
+    apiDoc["y_axis"]    = doc["y_axis"]    | 0.0;
+    apiDoc["z_axis"]    = doc["z_axis"]    | 0.0;
+    apiDoc["threshold"] = doc["threshold"] | 2.0;
+    String apiBody;
+    serializeJson(apiDoc, apiBody);
+    httpPost("/vibration/data", apiBody);
 
-  checkWifi(); // Pastikan WiFi masih konek sebelum forward
+    // Build payload untuk MQTT
+    StaticJsonDocument<256> mqttDoc;
+    mqttDoc["device_id"] = DEVICE_ID;
+    mqttDoc["node"]      = node;
+    mqttDoc["type"]      = type;
+    mqttDoc["x_axis"]    = doc["x_axis"]    | 0.0;
+    mqttDoc["y_axis"]    = doc["y_axis"]    | 0.0;
+    mqttDoc["z_axis"]    = doc["z_axis"]    | 0.0;
+    String mqttBody;
+    serializeJson(mqttDoc, mqttBody);
+    publishMQTT(TOPIC_VIBRATION, mqttBody);
+  }
 
-  if      (type == "PIR")       prosesPIR(nodeId, payload);
-  else if (type == "REED")      prosesREED(nodeId, payload);
-  else if (type == "VIBRATION") prosesVIBRATION(nodeId, payload);
-  else if (type == "HEARTBEAT") prosesHEARTBEAT(nodeId, payload);
+  // =========================================
+  // STATUS (heartbeat)
+  // =========================================
+  else if (type == "STATUS") {
+    // Kirim ke /lora/receive agar device tetap Online di dashboard
+    StaticJsonDocument<128> apiDoc;
+    apiDoc["node_id"]    = node;
+    apiDoc["gateway_id"] = gateway;
+    apiDoc["payload"]    = "HEARTBEAT|" + node;
+    apiDoc["uptime"]     = doc["uptime"] | 0;
+    String apiBody;
+    serializeJson(apiDoc, apiBody);
+    httpPost("/lora/receive", apiBody);
+
+    // MQTT
+    StaticJsonDocument<128> mqttDoc;
+    mqttDoc["device_id"] = DEVICE_ID;
+    mqttDoc["node"]      = node;
+    mqttDoc["type"]      = type;
+    mqttDoc["uptime"]    = doc["uptime"] | 0;
+    String mqttBody;
+    serializeJson(mqttDoc, mqttBody);
+    publishMQTT(TOPIC_STATUS, mqttBody);
+
+    Serial.println("[STATUS] RECEIVED & FORWARDED");
+  }
+
+  // =========================================
+  // TEST
+  // =========================================
+  else if (type == "TEST") {
+    Serial.println("[TEST] RECEIVED OK");
+    StaticJsonDocument<128> mqttDoc;
+    mqttDoc["device_id"] = DEVICE_ID;
+    mqttDoc["node"]      = node;
+    mqttDoc["type"]      = type;
+    String mqttBody;
+    serializeJson(mqttDoc, mqttBody);
+    publishMQTT(TOPIC_TEST, mqttBody);
+  }
+
   else {
-    Serial.println("[LoRa RX] Type tidak dikenal: " + type);
+    Serial.println("[ROUTER] UNKNOWN TYPE: " + type);
   }
 }
 
@@ -275,69 +373,111 @@ void prosesPacket(String packet, int rssi, float snr) {
 // ============================================
 void setup() {
   Serial.begin(115200);
-  delay(1000);
+  delay(500);
+  Serial.println("\n==========================");
+  Serial.println("  SMART RACK GATEWAY      ");
+  Serial.println("==========================");
 
-  pinMode(LED_WIFI, OUTPUT);
-  pinMode(LED_LORA, OUTPUT);
-  digitalWrite(LED_WIFI, LOW);
-  digitalWrite(LED_LORA, LOW);
+  pinMode(LED_WIFI,  OUTPUT);
+  pinMode(LED_LORA,  OUTPUT);
+  pinMode(LED_HIJAU, OUTPUT);
+  pinMode(LED_MERAH, OUTPUT);
+  digitalWrite(LED_WIFI,  LOW);
+  digitalWrite(LED_LORA,  LOW);
+  digitalWrite(LED_HIJAU, HIGH);
+  digitalWrite(LED_MERAH, LOW);
 
-  Serial.println("=================================");
-  Serial.println("  SMART RACK — GATEWAY RECEIVER");
-  Serial.println("  API: " + String(API_BASE));
-  Serial.println("  Device ID: " + String(DEVICE_ID));
-  Serial.println("=================================");
-
-  // WiFi
   setupWifi();
+  connectMQTT();
 
-  // LoRa — HARUS setting sama persis dengan Node Sender
+  // =========================================
+  // LORA — hardware reset + retry
+  // =========================================
+  Serial.println("[1] LoRa setPins");
+  pinMode(LORA_RST, OUTPUT);
+  digitalWrite(LORA_RST, LOW);  delay(20);
+  digitalWrite(LORA_RST, HIGH); delay(150);
   LoRa.setPins(LORA_SS, LORA_RST, LORA_DIO0);
-  if (!LoRa.begin(LORA_FREQ)) {
-    Serial.println("[LoRa] GAGAL INIT! Cek wiring.");
-    while (true) {
-      digitalWrite(LED_LORA, HIGH); delay(200);
-      digitalWrite(LED_LORA, LOW);  delay(200);
+
+  Serial.println("[2] Starting LoRa...");
+  int loraRetry = 0;
+  while (!LoRa.begin(LORA_FREQ)) {
+    loraRetry++;
+    Serial.print("[LoRa] INIT FAILED, retry: ");
+    Serial.println(loraRetry);
+    digitalWrite(LORA_RST, LOW);  delay(20);
+    digitalWrite(LORA_RST, HIGH); delay(150);
+    delay(500);
+    if (loraRetry >= 10) {
+      Serial.println("[LoRa] GIVING UP - RESTART");
+      delay(1000);
+      ESP.restart();
     }
   }
 
-  LoRa.setSpreadingFactor(9);    // Harus sama dengan Node!
-  LoRa.setSignalBandwidth(125E3);
-  LoRa.setCodingRate4(5);
-
-  Serial.println("[LoRa] ✓ OK — " + String(LORA_FREQ / 1E6) + " MHz, menunggu paket...");
-  Serial.println("Gateway siap!");
+  LoRa.setSpreadingFactor(LORA_SF);
+  LoRa.setSignalBandwidth(LORA_BW);
+  LoRa.setCodingRate4(LORA_CR);
+  LoRa.setSyncWord(LORA_SYNC_WORD);
+  Serial.println("[3] LoRa READY");
+  Serial.println("[SYSTEM] READY — menunggu paket...");
+  Serial.println("  API     : " + String(API_BASE));
+  Serial.println("  DeviceID: " + String(DEVICE_ID));
 }
 
 // ============================================
 // LOOP
 // ============================================
 void loop() {
-  // Cek apakah ada paket LoRa masuk
-  int packetSize = LoRa.parsePacket();
+  checkWifi();
+  if (!mqtt.connected()) connectMQTT();
+  mqtt.loop();
 
-  if (packetSize > 0) {
+  // =========================================
+  // RECEIVE LORA
+  // =========================================
+  int packetSize = LoRa.parsePacket();
+  if (packetSize) {
+    totalReceived++;
+    blinkLoRa();
+
     String packet = "";
     while (LoRa.available()) {
       packet += (char)LoRa.read();
     }
-    int   rssi = LoRa.packetRssi();
-    float snr  = LoRa.packetSnr();
 
-    prosesPacket(packet, rssi, snr);
+    Serial.println("\n========== LORA RX ==========");
+    Serial.println(packet);
+    Serial.print("RSSI: "); Serial.println(LoRa.packetRssi());
+    Serial.print("SNR:  "); Serial.println(LoRa.packetSnr());
+    Serial.println("=============================");
+
+    routePacket(packet);
   }
 
-  // Print statistik setiap 60 detik
+  // =========================================
+  // ALERT RESET
+  // =========================================
+  if (alertActive && millis() - alertStartTime > ALERT_HOLD) {
+    alertActive = false;
+    digitalWrite(LED_HIJAU, HIGH);
+    digitalWrite(LED_MERAH, LOW);
+  }
+
+  // =========================================
+  // STATUS PRINT setiap 60 detik
+  // =========================================
   if (millis() - lastStatusPrint >= 60000) {
     Serial.println("─────────────────────────────────");
-    Serial.println("[STATUS] Uptime: " + String(millis()/1000) + "s");
-    Serial.println("[STATUS] LoRa diterima : " + String(totalReceived));
-    Serial.println("[STATUS] API berhasil  : " + String(totalSent));
-    Serial.println("[STATUS] API gagal     : " + String(totalFailed));
-    Serial.println("[STATUS] WiFi: " + String(WiFi.status() == WL_CONNECTED ? "OK" : "PUTUS"));
+    Serial.println("[STATUS] Uptime  : " + String(millis() / 1000) + "s");
+    Serial.println("[STATUS] Diterima: " + String(totalReceived));
+    Serial.println("[STATUS] API OK  : " + String(totalSent));
+    Serial.println("[STATUS] API FAIL: " + String(totalFailed));
+    Serial.println("[STATUS] WiFi    : " + String(WiFi.status() == WL_CONNECTED ? "OK" : "PUTUS"));
+    Serial.println("[STATUS] MQTT    : " + String(mqtt.connected() ? "OK" : "PUTUS"));
     Serial.println("─────────────────────────────────");
     lastStatusPrint = millis();
   }
 
-  delay(10); // Kecil saja agar LoRa tidak miss paket
+  delay(10);
 }
