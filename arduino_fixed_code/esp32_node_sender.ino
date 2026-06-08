@@ -50,21 +50,28 @@
 #define VIB_DEBOUNCE 1500
 
 // ============================================
-// BUZZER PATTERN
+// BUZZER LANGSUNG (blocking) — dipanggil saat
+// deteksi agar pasti bunyi sebelum kirim LoRa
 // ============================================
-enum BuzzerPattern {
-  BUZ_NONE,
-  BUZ_PIR,
-  BUZ_REED,
-  BUZ_VIB
-};
-
-// ============================================
-// BUZZER STATE
-// ============================================
-BuzzerPattern currentPattern = BUZ_NONE;
-int buzzerStep = 0;
-unsigned long buzzerNextTime = 0;
+// PIR  : 3x beep pendek cepat
+void buzzerPIR() {
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(PIN_BUZZER, HIGH); delay(80);
+    digitalWrite(PIN_BUZZER, LOW);  delay(80);
+  }
+}
+// REED : 1x beep panjang
+void buzzerReed() {
+  digitalWrite(PIN_BUZZER, HIGH); delay(600);
+  digitalWrite(PIN_BUZZER, LOW);
+}
+// VIB  : 2x beep sedang
+void buzzerVib() {
+  for (int i = 0; i < 2; i++) {
+    digitalWrite(PIN_BUZZER, HIGH); delay(150);
+    digitalWrite(PIN_BUZZER, LOW);  delay(100);
+  }
+}
 
 // ============================================
 // PIR STATE
@@ -103,8 +110,9 @@ unsigned long totalFailed = 0;
 void readPIR(unsigned long now);
 void readReed(unsigned long now);
 void readVibration(unsigned long now);
-void startBuzzer(BuzzerPattern pattern);
-void updateBuzzer(unsigned long now);
+void buzzerPIR();
+void buzzerReed();
+void buzzerVib();
 void sendPIRData(bool motion, int intensity, int duration, String zone);
 void sendReedData(bool opened, int duration, bool forced);
 void sendVibrationData();
@@ -203,8 +211,6 @@ void loop() {
     readVibration(now);
   }
 
-  updateBuzzer(now);
-
   if (now - lastHeartbeat >= HEARTBEAT_INTERVAL) {
     sendStatus();
     lastHeartbeat = now;
@@ -224,7 +230,7 @@ void readPIR(unsigned long now) {
     if (pirStableState) {
       pirTriggerTime = now;
       Serial.println("[PIR] DETECTED");
-      startBuzzer(BUZ_PIR);
+      buzzerPIR();                          // bunyi langsung
       sendPIRData(true, 75, 0, "center");
     } else {
       int duration = (now - pirTriggerTime) / 1000;
@@ -250,13 +256,13 @@ void readReed(unsigned long now) {
         reedOpenTime = now;
         reedWasOpen  = true;
         Serial.println("[REED] OPEN");
-        startBuzzer(BUZ_REED);
+        buzzerReed();                       // bunyi langsung
         sendReedData(true, 0, false);
       } else {
         int duration = reedWasOpen ? (now - reedOpenTime) / 1000 : 0;
         reedWasOpen  = false;
         Serial.println("[REED] CLOSE");
-        startBuzzer(BUZ_REED);
+        buzzerReed();                       // bunyi langsung
         sendReedData(false, duration, false);
       }
       lastStable = current;
@@ -274,63 +280,11 @@ void readVibration(unsigned long now) {
     if (now - vibLastTrigger > VIB_DEBOUNCE) {
       vibLastTrigger = now;
       Serial.println("[VIB] DETECTED");
-      startBuzzer(BUZ_VIB);
+      buzzerVib();                          // bunyi langsung
       sendVibrationData();
     }
   }
   vibLastState = current;
-}
-
-// ============================================
-// START BUZZER
-// ============================================
-void startBuzzer(BuzzerPattern pattern) {
-  digitalWrite(PIN_BUZZER, LOW);
-  currentPattern = pattern;
-  buzzerStep     = 0;
-  buzzerNextTime = millis();
-}
-
-// ============================================
-// UPDATE BUZZER
-// ============================================
-void updateBuzzer(unsigned long now) {
-  if (currentPattern == BUZ_NONE) return;
-  if (now < buzzerNextTime)       return;
-
-  // PIR: 3x beep pendek
-  if (currentPattern == BUZ_PIR) {
-    if (buzzerStep < 6) {
-      digitalWrite(PIN_BUZZER, buzzerStep % 2 == 0 ? HIGH : LOW);
-      buzzerNextTime = now + 80;
-      buzzerStep++;
-    } else {
-      digitalWrite(PIN_BUZZER, LOW);
-      currentPattern = BUZ_NONE;
-    }
-  }
-  // REED: 1x beep panjang
-  else if (currentPattern == BUZ_REED) {
-    if (buzzerStep == 0) {
-      digitalWrite(PIN_BUZZER, HIGH);
-      buzzerNextTime = now + 600;
-      buzzerStep++;
-    } else {
-      digitalWrite(PIN_BUZZER, LOW);
-      currentPattern = BUZ_NONE;
-    }
-  }
-  // VIBRATION: 2x beep sedang
-  else if (currentPattern == BUZ_VIB) {
-    if (buzzerStep < 4) {
-      digitalWrite(PIN_BUZZER, buzzerStep % 2 == 0 ? HIGH : LOW);
-      buzzerNextTime = now + (buzzerStep % 2 == 0 ? 150 : 100);
-      buzzerStep++;
-    } else {
-      digitalWrite(PIN_BUZZER, LOW);
-      currentPattern = BUZ_NONE;
-    }
-  }
 }
 
 // ============================================
