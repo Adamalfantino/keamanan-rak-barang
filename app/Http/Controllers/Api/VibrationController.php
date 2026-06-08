@@ -88,6 +88,20 @@ class VibrationController extends Controller
             // Tandai device sebagai online
             Device::markOnline($data['device_id']);
 
+            // Tulis activity log
+            $sensor = \App\Models\Sensor::where('device_id', $data['device_id'])->where('type', 'vibration')->first();
+            \App\Models\ActivityLog::create([
+                'device_id'  => $data['device_id'],
+                'sensor_id'  => $sensor?->id,
+                'event_type' => $isAbnormal ? 'vibration_detected' : 'system_normal',
+                'severity'   => $status === 'critical' ? 'critical' : ($isAbnormal ? 'warning' : 'info'),
+                'title'      => $isAbnormal ? 'Getaran Abnormal Terdeteksi' : 'Getaran Normal',
+                'description'=> "Sensor SW-420 mendeteksi getaran. Magnitude: " . round($magnitude, 2) . ", Status: {$status}.",
+                'event_data' => ['vibration_reading_id' => $vibrationReading->id, 'magnitude' => $magnitude, 'status' => $status],
+                'location'   => $sensor?->device?->location ?? 'Rak A - Lantai 1',
+                'event_time' => now(),
+            ]);
+
             // Jika getaran abnormal, buat alert dan kirim notifikasi
             if ($isAbnormal) {
                 $this->handleAbnormalVibration($vibrationReading);

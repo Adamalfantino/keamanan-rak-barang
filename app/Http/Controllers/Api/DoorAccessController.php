@@ -123,6 +123,20 @@ class DoorAccessController extends Controller
             // Tandai device sebagai online
             Device::markOnline($data['device_id']);
 
+            // Tulis activity log
+            $sensor = \App\Models\Sensor::where('device_id', $data['device_id'])->where('type', 'reed_switch')->first();
+            \App\Models\ActivityLog::create([
+                'device_id'  => $data['device_id'],
+                'sensor_id'  => $sensor?->id,
+                'event_type' => $data['door_opened'] ? 'door_opened' : 'door_closed',
+                'severity'   => $isSuspicious ? 'warning' : 'info',
+                'title'      => $data['door_opened'] ? 'Rak Dibuka' : 'Rak Ditutup',
+                'description'=> "Reed switch mendeteksi rak " . ($data['door_opened'] ? 'dibuka' : 'ditutup') . " di lokasi " . ($data['door_location'] ?? 'rack') . ". Durasi: {$durationSeconds}s.",
+                'event_data' => ['door_reading_id' => $doorReading->id, 'access_type' => $accessType, 'duration' => $durationSeconds],
+                'location'   => $sensor?->device?->location ?? 'Rak A - Lantai 1',
+                'event_time' => $recordedAt,
+            ]);
+
             // Jika akses mencurigakan atau tidak sah, buat alert dan kirim notifikasi
             $alertSent = false;
             if ($isSuspicious || !$isAuthorizedAccess || $accessType === 'forced_entry') {

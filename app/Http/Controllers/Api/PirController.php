@@ -112,6 +112,22 @@ class PirController extends Controller
             // Tandai device sebagai online
             Device::markOnline($data['device_id']);
 
+            // Tulis activity log
+            if ($data['motion_detected']) {
+                $sensor = \App\Models\Sensor::where('device_id', $data['device_id'])->where('type', 'pir')->first();
+                \App\Models\ActivityLog::create([
+                    'device_id'  => $data['device_id'],
+                    'sensor_id'  => $sensor?->id,
+                    'event_type' => $isSuspicious ? 'motion_detected' : 'motion_detected',
+                    'severity'   => $isSuspicious ? 'warning' : 'info',
+                    'title'      => $isSuspicious ? 'Gerakan Mencurigakan Terdeteksi' : 'Gerakan Terdeteksi',
+                    'description'=> "Sensor PIR mendeteksi gerakan di zona {$pirReading->detection_zone}. Intensitas: {$motionIntensity}%.",
+                    'event_data' => ['pir_reading_id' => $pirReading->id, 'motion_type' => $motionType, 'intensity' => $motionIntensity],
+                    'location'   => $sensor?->device?->location ?? 'Rak A - Lantai 1',
+                    'event_time' => $recordedAt,
+                ]);
+            }
+
             // Jika gerakan mencurigakan, buat alert dan kirim notifikasi
             $alertSent = false;
             if ($isSuspicious || $motionType === 'unauthorized') {
