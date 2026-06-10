@@ -56,6 +56,29 @@ PubSubClient mqtt(espClient);
 #define LED_MERAH 25
 
 // ============================================
+// BUZZER
+// ============================================
+#define PIN_BUZZER 32   // Ganti sesuai pin yang tersedia di ESP32 gateway
+
+// Pola bunyi per sensor
+void buzzerPIR() {      // 3x beep pendek
+  for (int i = 0; i < 3; i++) {
+    digitalWrite(PIN_BUZZER, HIGH); delay(80);
+    digitalWrite(PIN_BUZZER, LOW);  delay(80);
+  }
+}
+void buzzerReed() {     // 1x beep panjang
+  digitalWrite(PIN_BUZZER, HIGH); delay(600);
+  digitalWrite(PIN_BUZZER, LOW);
+}
+void buzzerVib() {      // 2x beep sedang
+  for (int i = 0; i < 2; i++) {
+    digitalWrite(PIN_BUZZER, HIGH); delay(150);
+    digitalWrite(PIN_BUZZER, LOW);  delay(100);
+  }
+}
+
+// ============================================
 // ALERT SYSTEM
 // ============================================
 #define ALERT_HOLD 3000
@@ -240,6 +263,7 @@ void routePacket(String raw) {
   // =========================================
   if (type == "PIR") {
     setAlert("PIR detected");
+    buzzerPIR();   // bunyi di gateway
 
     // Build payload untuk API
     StaticJsonDocument<256> apiDoc;
@@ -268,6 +292,7 @@ void routePacket(String raw) {
   // =========================================
   else if (type == "REED") {
     setAlert("DOOR event");
+    buzzerReed();  // bunyi di gateway
 
     // Build payload untuk API
     StaticJsonDocument<256> apiDoc;
@@ -297,6 +322,7 @@ void routePacket(String raw) {
   // =========================================
   else if (type == "VIBRATION") {
     setAlert("VIBRATION detected");
+    buzzerVib();   // bunyi di gateway
 
     // Build payload untuk API — butuh x_axis, y_axis, z_axis
     // Jika node sender tidak kirim (firmware lama), generate simulasi di gateway
@@ -392,10 +418,12 @@ void setup() {
   pinMode(LED_LORA,  OUTPUT);
   pinMode(LED_HIJAU, OUTPUT);
   pinMode(LED_MERAH, OUTPUT);
+  pinMode(PIN_BUZZER, OUTPUT);
   digitalWrite(LED_WIFI,  LOW);
   digitalWrite(LED_LORA,  LOW);
   digitalWrite(LED_HIJAU, HIGH);
   digitalWrite(LED_MERAH, LOW);
+  digitalWrite(PIN_BUZZER, LOW);
 
   setupWifi();
   connectMQTT();
